@@ -29,7 +29,7 @@ Small businesses already run bookings through WhatsApp, but the inbox is messy: 
 - Mesh API as the only AI gateway.
 - Twilio WhatsApp for customer chat and reminders.
 - Next.js for the owner dashboard.
-- Supabase Postgres for persistent state.
+- Neon Postgres for persistent state.
 
 ## Hackathon Fit
 

@@ -1,6 +1,7 @@
 .env
 .env.local
 .env.*.local
+.internal/
 .next
 node_modules
 package-lock.json
