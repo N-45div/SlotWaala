@@ -8,8 +8,8 @@ function textResponse(body: string) {
 
 export default defineChannel({
   routes: [
-    POST("/incoming", async ({ request, respond }) => {
-      const form = await request.formData();
+    POST("/incoming", async (req, { send }) => {
+      const form = await req.formData();
       const from = String(form.get("From") ?? "");
       const body = String(form.get("Body") ?? "");
 
@@ -17,8 +17,8 @@ export default defineChannel({
         return textResponse("");
       }
 
-      await respond({
-        message: [
+      await send(
+        [
           "<whatsapp_context>",
           "channel: whatsapp",
           `from: ${from}`,
@@ -26,13 +26,16 @@ export default defineChannel({
           "</whatsapp_context>",
           body || "Customer sent an empty WhatsApp message.",
         ].join("\n"),
-        auth: {
-          principalId: from,
-          principalType: "user",
-          authenticator: "twilio-whatsapp",
-          attributes: { from },
+        {
+          auth: {
+            principalId: from,
+            principalType: "user",
+            authenticator: "twilio-whatsapp",
+            attributes: { from },
+          },
+          continuationToken: from,
         },
-      });
+      );
 
       return textResponse("");
     }),

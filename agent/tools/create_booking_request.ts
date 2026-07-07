@@ -1,10 +1,10 @@
-import { tool } from "eve";
+import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { createBookingRequest } from "../lib/booking-store.js";
 
-export default tool({
+export default defineTool({
   description: "Create an owner-visible booking request from operational details.",
-  parameters: z.object({
+  inputSchema: z.object({
     customerPhone: z.string(),
     customerName: z.string().optional(),
     service: z.string().optional(),

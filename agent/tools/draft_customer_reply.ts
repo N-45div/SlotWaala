@@ -1,4 +1,4 @@
-import { tool } from "eve";
+import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { generateMeshJson } from "../lib/mesh.js";
 
@@ -9,9 +9,9 @@ const DraftSchema = z.object({
   reason: z.string(),
 });
 
-export default tool({
+export default defineTool({
   description: "Draft a short WhatsApp reply for the customer.",
-  parameters: z.object({
+  inputSchema: z.object({
     customerMessage: z.string(),
     businessContext: z.string(),
     proposedAction: z.string(),

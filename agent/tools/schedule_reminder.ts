@@ -1,9 +1,9 @@
-import { tool } from "eve";
+import { defineTool } from "eve/tools";
 import { z } from "zod";
 
-export default tool({
+export default defineTool({
   description: "Schedule a WhatsApp reminder after a booking is confirmed.",
-  parameters: z.object({
+  inputSchema: z.object({
     bookingId: z.string(),
     customerPhone: z.string(),
     reminderAt: z.string(),

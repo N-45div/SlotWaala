@@ -1,9 +1,9 @@
-import { tool } from "eve";
+import { defineTool } from "eve/tools";
 import { z } from "zod";
 
-export default tool({
+export default defineTool({
   description: "Escalate unclear, sensitive, or risky messages to the business owner.",
-  parameters: z.object({
+  inputSchema: z.object({
     from: z.string(),
     reason: z.string(),
     message: z.string(),

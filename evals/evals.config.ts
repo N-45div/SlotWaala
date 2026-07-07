@@ -1,3 +1,3 @@
-export default {
-  include: ["evals/smoke/*.eval.ts"],
-};
+import { defineEvalConfig } from "eve/evals";
+
+export default defineEvalConfig({});

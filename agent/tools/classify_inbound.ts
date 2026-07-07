@@ -1,4 +1,4 @@
-import { tool } from "eve";
+import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { generateMeshJson } from "../lib/mesh.js";
 
@@ -19,9 +19,9 @@ const ClassificationSchema = z.object({
   missingFields: z.array(z.string()),
 });
 
-export default tool({
+export default defineTool({
   description: "Classify an inbound WhatsApp message and identify booking fields.",
-  parameters: z.object({
+  inputSchema: z.object({
     message: z.string(),
     from: z.string(),
   }),

@@ -1,4 +1,4 @@
-import { tool } from "eve";
+import { defineTool } from "eve/tools";
 import { z } from "zod";
 
 const sampleSlots = [
@@ -8,9 +8,9 @@ const sampleSlots = [
   "Friday 7:00 PM",
 ];
 
-export default tool({
+export default defineTool({
   description: "Check available owner-configured slots for a requested service.",
-  parameters: z.object({
+  inputSchema: z.object({
     service: z.string(),
     preferredWindow: z.string().optional(),
   }),
