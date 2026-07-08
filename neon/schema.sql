@@ -7,6 +7,10 @@ create table if not exists businesses (
   created_at timestamptz not null default now()
 );
 
+create unique index if not exists businesses_whatsapp_number_idx
+  on businesses (whatsapp_number)
+  where whatsapp_number is not null;
+
 create table if not exists customers (
   id uuid primary key default gen_random_uuid(),
   business_id uuid not null references businesses(id) on delete cascade,
@@ -65,5 +69,6 @@ create table if not exists mesh_traces (
 
 create index if not exists customers_business_phone_idx on customers (business_id, phone);
 create index if not exists conversations_customer_idx on conversations (customer_id, updated_at desc);
+create unique index if not exists messages_external_id_idx on messages (external_id) where external_id is not null;
 create index if not exists booking_requests_business_status_idx on booking_requests (business_id, status, updated_at desc);
 create index if not exists mesh_traces_booking_idx on mesh_traces (booking_request_id, created_at desc);
