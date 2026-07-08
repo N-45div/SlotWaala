@@ -59,6 +59,8 @@ create table if not exists booking_requests (
 create table if not exists mesh_traces (
   id uuid primary key default gen_random_uuid(),
   booking_request_id uuid references booking_requests(id) on delete set null,
+  conversation_id uuid references conversations(id) on delete set null,
+  message_id uuid references messages(id) on delete set null,
   task text not null,
   model text not null,
   latency_ms integer not null check (latency_ms >= 0),
@@ -72,3 +74,4 @@ create index if not exists conversations_customer_idx on conversations (customer
 create unique index if not exists messages_external_id_idx on messages (external_id) where external_id is not null;
 create index if not exists booking_requests_business_status_idx on booking_requests (business_id, status, updated_at desc);
 create index if not exists mesh_traces_booking_idx on mesh_traces (booking_request_id, created_at desc);
+create index if not exists mesh_traces_conversation_idx on mesh_traces (conversation_id, created_at desc);

@@ -27,6 +27,7 @@ You should:
 # Tool Policy
 
 - Use `classify_inbound` for every new customer message.
+- Use the persisted `storedMeshTrace.id` from `classify_inbound` when creating a booking request.
 - Use `check_availability` before proposing a concrete slot.
 - Use `create_booking_request` when the customer has shared enough operational details.
 - Use `draft_customer_reply` before sending any customer-facing text.

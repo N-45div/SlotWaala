@@ -150,6 +150,8 @@ export type SlotWaalaDatabase = {
     Row: {
       id: string;
       booking_request_id: string | null;
+      conversation_id: string | null;
+      message_id: string | null;
       task: string;
       model: string;
       latency_ms: number;
@@ -160,6 +162,8 @@ export type SlotWaalaDatabase = {
     Insert: {
       id?: string;
       booking_request_id?: string | null;
+      conversation_id?: string | null;
+      message_id?: string | null;
       task: string;
       model: string;
       latency_ms: number;
@@ -170,6 +174,8 @@ export type SlotWaalaDatabase = {
     Update: {
       id?: string;
       booking_request_id?: string | null;
+      conversation_id?: string | null;
+      message_id?: string | null;
       task?: string;
       model?: string;
       latency_ms?: number;
