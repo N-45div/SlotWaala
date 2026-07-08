@@ -8,7 +8,7 @@ import {
   Send,
   ShieldCheck,
 } from "lucide-react";
-import { bookingRequests, meshTraces } from "@/lib/demo-data";
+import { getDashboardData } from "@/lib/dashboard-data";
 
 const statusLabel = {
   "needs-approval": "Approval",
@@ -16,7 +16,8 @@ const statusLabel = {
   confirmed: "Confirmed",
 };
 
-export default function Home() {
+export default async function Home() {
+  const { bookingRequests, meshTraces, source, error } = await getDashboardData();
   const needsApproval = bookingRequests.filter(
     (request) => request.status === "needs-approval",
   ).length;
@@ -70,6 +71,9 @@ export default function Home() {
             </p>
           </div>
           <div className="action-row">
+            <span className={`data-source ${source}`}>
+              {source === "neon" ? "Live Neon" : "Demo data"}
+            </span>
             <button className="button" type="button">
               <MessageCircle size={18} />
               Test WhatsApp
@@ -80,6 +84,12 @@ export default function Home() {
             </button>
           </div>
         </div>
+
+        {error ? (
+          <div className="notice">
+            Live Neon data could not load. Showing demo data. {error}
+          </div>
+        ) : null}
 
         <section className="metrics" aria-label="Queue metrics">
           <div className="metric">
@@ -107,22 +117,28 @@ export default function Home() {
               <span className="subtle">{bookingRequests.length} active</span>
             </div>
             <div className="queue">
-              {bookingRequests.map((request) => (
-                <article className="booking-row" key={request.id}>
-                  <div>
-                    <p className="booking-title">
-                      {request.customerName} · {request.service}
-                    </p>
-                    <p className="booking-meta">
-                      {request.area} · {request.preferredSlot} · {request.phone}
-                    </p>
-                    <p className="booking-message">{request.inboundMessage}</p>
-                  </div>
-                  <span className={`pill ${request.status}`}>
-                    {statusLabel[request.status]}
-                  </span>
-                </article>
-              ))}
+              {bookingRequests.length > 0 ? (
+                bookingRequests.map((request) => (
+                  <article className="booking-row" key={request.id}>
+                    <div>
+                      <p className="booking-title">
+                        {request.customerName} · {request.service}
+                      </p>
+                      <p className="booking-meta">
+                        {request.area} · {request.preferredSlot} · {request.phone}
+                      </p>
+                      <p className="booking-message">{request.inboundMessage}</p>
+                    </div>
+                    <span className={`pill ${request.status}`}>
+                      {statusLabel[request.status]}
+                    </span>
+                  </article>
+                ))
+              ) : (
+                <div className="empty-state">
+                  Waiting for the first WhatsApp booking request.
+                </div>
+              )}
             </div>
           </section>
 
@@ -136,25 +152,31 @@ export default function Home() {
                 <div className="bubble">
                   <p className="bubble-label">Customer</p>
                   <p className="bubble-text">
-                    {bookingRequests[0]?.inboundMessage}
+                    {bookingRequests[0]?.inboundMessage ?? "No active booking selected."}
                   </p>
                 </div>
                 <div className="bubble agent">
                   <p className="bubble-label">SlotWaala draft</p>
-                  <p className="bubble-text">{bookingRequests[0]?.agentDraft}</p>
+                  <p className="bubble-text">
+                    {bookingRequests[0]?.agentDraft ?? "Draft will appear after Mesh classification."}
+                  </p>
                 </div>
               </div>
 
               <div className="trace-list">
-                {meshTraces.map((trace) => (
-                  <div className="trace" key={trace.id}>
-                    <strong>{trace.task}</strong>
-                    <span className="subtle">
-                      {trace.model} · {trace.latencyMs} ms
-                    </span>
-                    <p className="booking-message">{trace.summary}</p>
-                  </div>
-                ))}
+                {meshTraces.length > 0 ? (
+                  meshTraces.map((trace) => (
+                    <div className="trace" key={trace.id}>
+                      <strong>{trace.task}</strong>
+                      <span className="subtle">
+                        {trace.model} · {trace.latencyMs} ms
+                      </span>
+                      <p className="booking-message">{trace.summary}</p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="empty-state compact">No Mesh traces yet.</div>
+                )}
               </div>
             </div>
           </aside>
