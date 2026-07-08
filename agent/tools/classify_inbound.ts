@@ -18,20 +18,7 @@ const ClassificationSchema = z.object({
   urgency: z.enum(["low", "medium", "high"]),
   sensitiveDataRisk: z.boolean(),
   summary: z.string(),
-  missingFields: z.array(z.string()),
-  bookingDetails: z
-    .object({
-      customerName: z.string().nullable().default(null),
-      service: z.string().nullable().default(null),
-      area: z.string().nullable().default(null),
-      preferredSlot: z.string().nullable().default(null),
-    })
-    .default({
-      customerName: null,
-      service: null,
-      area: null,
-      preferredSlot: null,
-    }),
+  shouldExtractBookingDetails: z.boolean(),
 });
 
 export default defineTool({
@@ -46,7 +33,7 @@ export default defineTool({
       task: "classify_inbound",
       schemaName: "Classification",
       system:
-        "You classify WhatsApp messages for a service-business booking desk. Extract only operational booking fields: customer name, service, area, preferred slot, missing fields. Do not extract payment, bank, UPI, card, Aadhaar, or PAN details.",
+        "You classify WhatsApp messages for a service-business booking desk. Return intent, language, urgency, sensitive-data risk, a short summary, and whether the message needs booking-detail extraction. Do not extract payment, bank, UPI, card, Aadhaar, or PAN details.",
       prompt: JSON.stringify({ from, message }),
     });
     const classification = ClassificationSchema.parse(result.object);
