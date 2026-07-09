@@ -34,3 +34,14 @@ Small businesses already run bookings through WhatsApp, but the inbox is messy: 
 ## Hackathon Fit
 
 SlotWaala targets the Mesh API productivity hackathon through the Agents & Automation, Bharat, and Multi-model tracks. The product is intentionally narrow: customer intake, booking coordination, and reminders for service businesses.
+
+## Real Environment Checks
+
+SlotWaala includes live checks for the actual Mesh, Neon, and Twilio path.
+
+```bash
+npm run eval:preflight
+npm run eval:e2e:real
+```
+
+`eval:e2e:real` is intentionally not mocked. It requires `SLOTWAALA_E2E_CUSTOMER_WHATSAPP` and sends real WhatsApp confirmation and reminder messages through Twilio.

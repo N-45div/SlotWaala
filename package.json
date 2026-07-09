@@ -10,7 +10,9 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "agent:dev": "eve dev",
-    "agent:eval": "eve eval"
+    "agent:eval": "eve eval",
+    "eval:preflight": "node scripts/preflight.mjs",
+    "eval:e2e:real": "node scripts/e2e-real.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
