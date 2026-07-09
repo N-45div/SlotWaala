@@ -8,13 +8,23 @@ import {
   Send,
   ShieldCheck,
 } from "lucide-react";
+import {
+  approveBooking,
+  rejectBooking,
+  requestBookingInfo,
+} from "@/app/actions";
 import { getDashboardData } from "@/lib/dashboard-data";
 
 const statusLabel = {
   "needs-approval": "Approval",
   "needs-info": "Need info",
+  approved: "Approved",
   confirmed: "Confirmed",
+  rejected: "Rejected",
+  escalated: "Escalated",
 };
+
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const { bookingRequests, meshTraces, source, error } = await getDashboardData();
@@ -128,6 +138,48 @@ export default async function Home() {
                         {request.area} · {request.preferredSlot} · {request.phone}
                       </p>
                       <p className="booking-message">{request.inboundMessage}</p>
+                      <div className="owner-controls">
+                        <form action={approveBooking}>
+                          <input
+                            name="bookingRequestId"
+                            type="hidden"
+                            value={request.id}
+                          />
+                          <input
+                            name="draftText"
+                            type="hidden"
+                            value={request.agentDraft}
+                          />
+                          <button className="mini-button approve" type="submit">
+                            Approve
+                          </button>
+                        </form>
+                        <form action={requestBookingInfo}>
+                          <input
+                            name="bookingRequestId"
+                            type="hidden"
+                            value={request.id}
+                          />
+                          <input
+                            name="note"
+                            type="hidden"
+                            value="Owner requested one more customer detail."
+                          />
+                          <button className="mini-button" type="submit">
+                            Need info
+                          </button>
+                        </form>
+                        <form action={rejectBooking}>
+                          <input
+                            name="bookingRequestId"
+                            type="hidden"
+                            value={request.id}
+                          />
+                          <button className="mini-button reject" type="submit">
+                            Reject
+                          </button>
+                        </form>
+                      </div>
                     </div>
                     <span className={`pill ${request.status}`}>
                       {statusLabel[request.status]}

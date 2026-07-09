@@ -1,4 +1,10 @@
-export type BookingStatus = "needs-approval" | "needs-info" | "confirmed";
+export type BookingStatus =
+  | "needs-approval"
+  | "needs-info"
+  | "approved"
+  | "confirmed"
+  | "rejected"
+  | "escalated";
 
 export type BookingRequest = {
   id: string;

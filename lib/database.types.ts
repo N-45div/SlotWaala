@@ -109,6 +109,7 @@ export type SlotWaalaDatabase = {
       status:
         | "needs_info"
         | "needs_owner_approval"
+        | "approved"
         | "confirmed"
         | "rejected"
         | "escalated";
@@ -181,6 +182,35 @@ export type SlotWaalaDatabase = {
       latency_ms?: number;
       input_summary?: string;
       output_summary?: string;
+      created_at?: string;
+    };
+  };
+  owner_actions: {
+    Row: {
+      id: string;
+      booking_request_id: string;
+      action: "approve" | "reject" | "request_info" | "escalate";
+      note: string | null;
+      draft_text: string | null;
+      actor: string;
+      created_at: string;
+    };
+    Insert: {
+      id?: string;
+      booking_request_id: string;
+      action: "approve" | "reject" | "request_info" | "escalate";
+      note?: string | null;
+      draft_text?: string | null;
+      actor?: string;
+      created_at?: string;
+    };
+    Update: {
+      id?: string;
+      booking_request_id?: string;
+      action?: "approve" | "reject" | "request_info" | "escalate";
+      note?: string | null;
+      draft_text?: string | null;
+      actor?: string;
       created_at?: string;
     };
   };

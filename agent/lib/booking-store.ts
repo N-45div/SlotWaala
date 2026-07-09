@@ -12,6 +12,7 @@ export type StoredBookingRequest = {
   status:
     | "needs_info"
     | "needs_owner_approval"
+    | "approved"
     | "confirmed"
     | "rejected"
     | "escalated";

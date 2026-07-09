@@ -16,6 +16,7 @@ type BookingRow = {
   status:
     | "needs_info"
     | "needs_owner_approval"
+    | "approved"
     | "confirmed"
     | "rejected"
     | "escalated";
@@ -47,7 +48,10 @@ function hasDatabaseUrl() {
 function mapStatus(status: BookingRow["status"]): BookingRequest["status"] {
   if (status === "needs_owner_approval") return "needs-approval";
   if (status === "needs_info") return "needs-info";
+  if (status === "approved") return "approved";
   if (status === "confirmed") return "confirmed";
+  if (status === "rejected") return "rejected";
+  if (status === "escalated") return "escalated";
   return "needs-info";
 }
 

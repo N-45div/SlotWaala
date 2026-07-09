@@ -320,6 +320,47 @@ h1 {
   color: var(--blue);
 }
 
+.pill.approved {
+  background: #e6f7ef;
+  color: var(--green-dark);
+}
+
+.pill.rejected,
+.pill.escalated {
+  background: #fff0ee;
+  color: var(--red);
+}
+
+.owner-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.mini-button {
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 720;
+  cursor: pointer;
+}
+
+.mini-button.approve {
+  background: var(--green);
+  border-color: var(--green);
+  color: #ffffff;
+}
+
+.mini-button.reject {
+  border-color: #f2c0bb;
+  color: var(--red);
+}
+
 .panel-body {
   padding: 16px;
 }

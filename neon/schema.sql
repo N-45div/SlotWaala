@@ -48,7 +48,7 @@ create table if not exists booking_requests (
   area text,
   preferred_slot text,
   status text not null default 'needs_info' check (
-    status in ('needs_info', 'needs_owner_approval', 'confirmed', 'rejected', 'escalated')
+    status in ('needs_info', 'needs_owner_approval', 'approved', 'confirmed', 'rejected', 'escalated')
   ),
   missing_fields text[] not null default '{}',
   agent_draft text,
@@ -69,9 +69,20 @@ create table if not exists mesh_traces (
   created_at timestamptz not null default now()
 );
 
+create table if not exists owner_actions (
+  id uuid primary key default gen_random_uuid(),
+  booking_request_id uuid not null references booking_requests(id) on delete cascade,
+  action text not null check (action in ('approve', 'reject', 'request_info', 'escalate')),
+  note text,
+  draft_text text,
+  actor text not null default 'owner',
+  created_at timestamptz not null default now()
+);
+
 create index if not exists customers_business_phone_idx on customers (business_id, phone);
 create index if not exists conversations_customer_idx on conversations (customer_id, updated_at desc);
 create unique index if not exists messages_external_id_idx on messages (external_id) where external_id is not null;
 create index if not exists booking_requests_business_status_idx on booking_requests (business_id, status, updated_at desc);
 create index if not exists mesh_traces_booking_idx on mesh_traces (booking_request_id, created_at desc);
 create index if not exists mesh_traces_conversation_idx on mesh_traces (conversation_id, created_at desc);
+create index if not exists owner_actions_booking_idx on owner_actions (booking_request_id, created_at desc);
