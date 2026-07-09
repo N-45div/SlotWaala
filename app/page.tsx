@@ -12,6 +12,7 @@ import {
   approveBooking,
   rejectBooking,
   requestBookingInfo,
+  sendConfirmation,
 } from "@/app/actions";
 import { getDashboardData } from "@/lib/dashboard-data";
 
@@ -25,6 +26,10 @@ const statusLabel = {
 };
 
 export const dynamic = "force-dynamic";
+
+function canOwnerReview(status: keyof typeof statusLabel) {
+  return status === "needs-approval" || status === "needs-info";
+}
 
 export default async function Home() {
   const { bookingRequests, meshTraces, source, error } = await getDashboardData();
@@ -138,48 +143,69 @@ export default async function Home() {
                         {request.area} · {request.preferredSlot} · {request.phone}
                       </p>
                       <p className="booking-message">{request.inboundMessage}</p>
-                      <div className="owner-controls">
-                        <form action={approveBooking}>
-                          <input
-                            name="bookingRequestId"
-                            type="hidden"
-                            value={request.id}
-                          />
-                          <input
-                            name="draftText"
-                            type="hidden"
-                            value={request.agentDraft}
-                          />
-                          <button className="mini-button approve" type="submit">
-                            Approve
-                          </button>
-                        </form>
-                        <form action={requestBookingInfo}>
-                          <input
-                            name="bookingRequestId"
-                            type="hidden"
-                            value={request.id}
-                          />
-                          <input
-                            name="note"
-                            type="hidden"
-                            value="Owner requested one more customer detail."
-                          />
-                          <button className="mini-button" type="submit">
-                            Need info
-                          </button>
-                        </form>
-                        <form action={rejectBooking}>
-                          <input
-                            name="bookingRequestId"
-                            type="hidden"
-                            value={request.id}
-                          />
-                          <button className="mini-button reject" type="submit">
-                            Reject
-                          </button>
-                        </form>
-                      </div>
+                      {canOwnerReview(request.status) ? (
+                        <div className="owner-controls">
+                          <form action={approveBooking}>
+                            <input
+                              name="bookingRequestId"
+                              type="hidden"
+                              value={request.id}
+                            />
+                            <input
+                              name="draftText"
+                              type="hidden"
+                              value={request.agentDraft}
+                            />
+                            <button className="mini-button approve" type="submit">
+                              Approve + send
+                            </button>
+                          </form>
+                          <form action={requestBookingInfo}>
+                            <input
+                              name="bookingRequestId"
+                              type="hidden"
+                              value={request.id}
+                            />
+                            <input
+                              name="note"
+                              type="hidden"
+                              value="Owner requested one more customer detail."
+                            />
+                            <button className="mini-button" type="submit">
+                              Need info
+                            </button>
+                          </form>
+                          <form action={rejectBooking}>
+                            <input
+                              name="bookingRequestId"
+                              type="hidden"
+                              value={request.id}
+                            />
+                            <button className="mini-button reject" type="submit">
+                              Reject
+                            </button>
+                          </form>
+                        </div>
+                      ) : null}
+                      {request.status === "approved" ? (
+                        <div className="owner-controls">
+                          <form action={sendConfirmation}>
+                            <input
+                              name="bookingRequestId"
+                              type="hidden"
+                              value={request.id}
+                            />
+                            <input
+                              name="draftText"
+                              type="hidden"
+                              value={request.agentDraft}
+                            />
+                            <button className="mini-button approve" type="submit">
+                              Send confirmation
+                            </button>
+                          </form>
+                        </div>
+                      ) : null}
                     </div>
                     <span className={`pill ${request.status}`}>
                       {statusLabel[request.status]}

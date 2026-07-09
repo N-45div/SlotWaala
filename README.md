@@ -13,7 +13,7 @@ Small businesses already run bookings through WhatsApp, but the inbox is messy: 
 3. The agent asks for missing booking details when needed.
 4. A booking request appears in the owner dashboard.
 5. The owner approves, edits, or rejects the proposed reply.
-6. SlotWaala sends the confirmation and scheduled reminder through WhatsApp.
+6. SlotWaala sends the approved confirmation and scheduled reminder through WhatsApp.
 
 ## Guardrails
 

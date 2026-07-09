@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { recordOwnerAction, type OwnerActionKind } from "@/lib/owner-actions";
+import { sendApprovedBookingConfirmation } from "@/lib/twilio/outbound";
 
 function readString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -25,7 +26,23 @@ async function submitOwnerAction(formData: FormData, action: OwnerActionKind) {
 }
 
 export async function approveBooking(formData: FormData) {
-  await submitOwnerAction(formData, "approve");
+  const bookingRequestId = readString(formData, "bookingRequestId");
+  const draftText = readString(formData, "draftText");
+
+  if (!bookingRequestId) {
+    throw new Error("bookingRequestId is required.");
+  }
+
+  await recordOwnerAction({
+    bookingRequestId,
+    action: "approve",
+    draftText,
+  });
+  await sendApprovedBookingConfirmation({
+    bookingRequestId,
+    draftText,
+  });
+  revalidatePath("/");
 }
 
 export async function rejectBooking(formData: FormData) {
@@ -34,4 +51,19 @@ export async function rejectBooking(formData: FormData) {
 
 export async function requestBookingInfo(formData: FormData) {
   await submitOwnerAction(formData, "request_info");
+}
+
+export async function sendConfirmation(formData: FormData) {
+  const bookingRequestId = readString(formData, "bookingRequestId");
+  const draftText = readString(formData, "draftText");
+
+  if (!bookingRequestId) {
+    throw new Error("bookingRequestId is required.");
+  }
+
+  await sendApprovedBookingConfirmation({
+    bookingRequestId,
+    draftText,
+  });
+  revalidatePath("/");
 }
