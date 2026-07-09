@@ -79,6 +79,22 @@ create table if not exists owner_actions (
   created_at timestamptz not null default now()
 );
 
+create table if not exists reminders (
+  id uuid primary key default gen_random_uuid(),
+  booking_request_id uuid not null references booking_requests(id) on delete cascade,
+  conversation_id uuid not null references conversations(id) on delete cascade,
+  customer_id uuid not null references customers(id) on delete cascade,
+  remind_at timestamptz not null,
+  message text not null,
+  status text not null default 'scheduled' check (
+    status in ('scheduled', 'sending', 'sent', 'failed', 'canceled')
+  ),
+  external_id text,
+  last_error text,
+  created_at timestamptz not null default now(),
+  sent_at timestamptz
+);
+
 create index if not exists customers_business_phone_idx on customers (business_id, phone);
 create index if not exists conversations_customer_idx on conversations (customer_id, updated_at desc);
 create unique index if not exists messages_external_id_idx on messages (external_id) where external_id is not null;
@@ -86,3 +102,5 @@ create index if not exists booking_requests_business_status_idx on booking_reque
 create index if not exists mesh_traces_booking_idx on mesh_traces (booking_request_id, created_at desc);
 create index if not exists mesh_traces_conversation_idx on mesh_traces (conversation_id, created_at desc);
 create index if not exists owner_actions_booking_idx on owner_actions (booking_request_id, created_at desc);
+create index if not exists reminders_due_idx on reminders (status, remind_at);
+create unique index if not exists reminders_external_id_idx on reminders (external_id) where external_id is not null;

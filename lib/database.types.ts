@@ -214,4 +214,45 @@ export type SlotWaalaDatabase = {
       created_at?: string;
     };
   };
+  reminders: {
+    Row: {
+      id: string;
+      booking_request_id: string;
+      conversation_id: string;
+      customer_id: string;
+      remind_at: string;
+      message: string;
+      status: "scheduled" | "sending" | "sent" | "failed" | "canceled";
+      external_id: string | null;
+      last_error: string | null;
+      created_at: string;
+      sent_at: string | null;
+    };
+    Insert: {
+      id?: string;
+      booking_request_id: string;
+      conversation_id: string;
+      customer_id: string;
+      remind_at: string;
+      message: string;
+      status?: "scheduled" | "sending" | "sent" | "failed" | "canceled";
+      external_id?: string | null;
+      last_error?: string | null;
+      created_at?: string;
+      sent_at?: string | null;
+    };
+    Update: {
+      id?: string;
+      booking_request_id?: string;
+      conversation_id?: string;
+      customer_id?: string;
+      remind_at?: string;
+      message?: string;
+      status?: "scheduled" | "sending" | "sent" | "failed" | "canceled";
+      external_id?: string | null;
+      last_error?: string | null;
+      created_at?: string;
+      sent_at?: string | null;
+    };
+  };
 };
