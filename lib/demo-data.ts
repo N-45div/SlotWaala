@@ -71,22 +71,22 @@ export const bookingRequests: BookingRequest[] = [
 export const meshTraces: MeshTrace[] = [
   {
     id: "trace_910",
-    task: "intent_classification",
-    model: "mesh:auto-fast",
+    task: "classify_inbound",
+    model: "amazon/nova-micro-v1",
     latencyMs: 812,
     summary: "Detected booking request with preferred same-day evening slot.",
   },
   {
     id: "trace_911",
-    task: "missing_field_check",
-    model: "mesh:auto-reasoning",
+    task: "check_message_policy",
+    model: "anthropic/claude-haiku-4.5",
     latencyMs: 1290,
     summary: "Area and service found; exact slot requires owner approval.",
   },
   {
     id: "trace_912",
-    task: "reply_draft",
-    model: "mesh:auto-balanced",
+    task: "draft_customer_reply",
+    model: "amazon/nova-lite-v1",
     latencyMs: 1044,
     summary: "Drafted a concise WhatsApp confirmation in friendly business tone.",
   },

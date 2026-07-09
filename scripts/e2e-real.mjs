@@ -1,10 +1,47 @@
 import { neon } from "@neondatabase/serverless";
+import { readFileSync } from "node:fs";
 import twilio from "twilio";
+
+function loadLocalEnv() {
+  try {
+    const content = readFileSync(".env.local", "utf8");
+    for (const line of content.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+
+      const separator = trimmed.indexOf("=");
+      if (separator === -1) continue;
+
+      const key = trimmed.slice(0, separator).trim();
+      const value = trimmed.slice(separator + 1).trim();
+      if (key && process.env[key] === undefined) {
+        process.env[key] = value.replace(/^['"]|['"]$/g, "");
+      }
+    }
+  } catch {
+    // .env.local is optional; CI can provide env directly.
+  }
+}
+
+loadLocalEnv();
 
 const now = new Date();
 const runId = `slotwaala-e2e-${now.toISOString()}`;
 const meshBaseUrl = process.env.MESH_BASE_URL ?? "https://api.meshapi.ai/v1";
-const meshModel = process.env.MESH_DEFAULT_MODEL ?? process.env.MESH_FAST_MODEL ?? "mesh:auto";
+
+const taskModelDefaults = {
+  classify_inbound: "amazon/nova-micro-v1",
+  extract_booking_details: "amazon/nova-lite-v1",
+  draft_customer_reply: "amazon/nova-lite-v1",
+  check_message_policy: "anthropic/claude-haiku-4.5",
+};
+
+const taskModelEnv = {
+  classify_inbound: "MESH_CLASSIFIER_MODEL",
+  extract_booking_details: "MESH_EXTRACTION_MODEL",
+  draft_customer_reply: "MESH_DRAFT_MODEL",
+  check_message_policy: "MESH_POLICY_MODEL",
+};
 
 const required = [
   "DATABASE_URL",
@@ -25,7 +62,23 @@ function missingEnv() {
   return required.filter((name) => !process.env[name]?.trim());
 }
 
+function modelForMeshTask(task) {
+  const taskOverride = taskModelEnv[task] ? process.env[taskModelEnv[task]]?.trim() : undefined;
+  if (taskOverride) return taskOverride;
+
+  if (task === "check_message_policy") {
+    return process.env.MESH_REASONING_MODEL ?? taskModelDefaults[task];
+  }
+
+  if (task === "classify_inbound") {
+    return process.env.MESH_FAST_MODEL ?? taskModelDefaults[task];
+  }
+
+  return taskModelDefaults[task] ?? process.env.MESH_DEFAULT_MODEL ?? "amazon/nova-lite-v1";
+}
+
 async function generateMeshJson({ task, system, prompt }) {
+  const model = modelForMeshTask(task);
   const startedAt = Date.now();
   const response = await fetch(`${meshBaseUrl}/chat/completions`, {
     method: "POST",
@@ -34,7 +87,7 @@ async function generateMeshJson({ task, system, prompt }) {
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: meshModel,
+      model,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: system },
@@ -55,7 +108,7 @@ async function generateMeshJson({ task, system, prompt }) {
     object: JSON.parse(content),
     trace: {
       task,
-      model: meshModel,
+      model,
       latencyMs: Date.now() - startedAt,
       inputSummary: prompt.slice(0, 180),
       outputSummary: content.slice(0, 180),
@@ -279,7 +332,11 @@ async function main() {
     bookingRequestId,
     confirmationSid: confirmation.sid,
     reminderSid: reminder.sid,
-    meshTasks: ["classify_inbound", "check_message_policy", "extract_booking_details"],
+    meshTasks: [
+      { task: "classify_inbound", model: modelForMeshTask("classify_inbound") },
+      { task: "check_message_policy", model: modelForMeshTask("check_message_policy") },
+      { task: "extract_booking_details", model: modelForMeshTask("extract_booking_details") },
+    ],
   }, null, 2));
 }
 

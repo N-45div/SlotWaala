@@ -23,6 +23,20 @@ type MeshJsonResult<T> = {
   trace: MeshTrace;
 };
 
+const taskModelDefaults: Record<string, string> = {
+  classify_inbound: "amazon/nova-micro-v1",
+  extract_booking_details: "amazon/nova-lite-v1",
+  draft_customer_reply: "amazon/nova-lite-v1",
+  check_message_policy: "anthropic/claude-haiku-4.5",
+};
+
+const taskModelEnv: Record<string, string> = {
+  classify_inbound: "MESH_CLASSIFIER_MODEL",
+  extract_booking_details: "MESH_EXTRACTION_MODEL",
+  draft_customer_reply: "MESH_DRAFT_MODEL",
+  check_message_policy: "MESH_POLICY_MODEL",
+};
+
 function env(name: string): string | undefined {
   const value = process.env[name]?.trim();
   return value ? value : undefined;
@@ -39,13 +53,28 @@ export function requireMeshConfig() {
   return {
     apiKey,
     baseUrl,
-    defaultModel: env("MESH_DEFAULT_MODEL") ?? env("MESH_FAST_MODEL") ?? "mesh:auto",
+    defaultModel: env("MESH_DEFAULT_MODEL") ?? "amazon/nova-lite-v1",
   };
+}
+
+export function modelForMeshTask(task: string): string {
+  const taskOverride = taskModelEnv[task] ? env(taskModelEnv[task]) : undefined;
+  if (taskOverride) return taskOverride;
+
+  if (task === "check_message_policy") {
+    return env("MESH_REASONING_MODEL") ?? taskModelDefaults[task];
+  }
+
+  if (task === "classify_inbound") {
+    return env("MESH_FAST_MODEL") ?? taskModelDefaults[task];
+  }
+
+  return taskModelDefaults[task] ?? env("MESH_DEFAULT_MODEL") ?? "amazon/nova-lite-v1";
 }
 
 export async function generateMeshJson<T>(input: MeshJsonInput): Promise<MeshJsonResult<T>> {
   const config = requireMeshConfig();
-  const model = input.model ?? config.defaultModel;
+  const model = input.model ?? modelForMeshTask(input.task) ?? config.defaultModel;
   const startedAt = Date.now();
 
   const response = await fetch(`${config.baseUrl}/chat/completions`, {

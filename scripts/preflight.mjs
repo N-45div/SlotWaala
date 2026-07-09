@@ -1,4 +1,28 @@
 import { neon } from "@neondatabase/serverless";
+import { readFileSync } from "node:fs";
+
+function loadLocalEnv() {
+  try {
+    const content = readFileSync(".env.local", "utf8");
+    for (const line of content.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+
+      const separator = trimmed.indexOf("=");
+      if (separator === -1) continue;
+
+      const key = trimmed.slice(0, separator).trim();
+      const value = trimmed.slice(separator + 1).trim();
+      if (key && process.env[key] === undefined) {
+        process.env[key] = value.replace(/^['"]|['"]$/g, "");
+      }
+    }
+  } catch {
+    // .env.local is optional; CI can provide env directly.
+  }
+}
+
+loadLocalEnv();
 
 const required = [
   "DATABASE_URL",
@@ -50,7 +74,7 @@ async function main() {
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: process.env.MESH_FAST_MODEL ?? process.env.MESH_DEFAULT_MODEL ?? "mesh:auto",
+      model: process.env.MESH_FAST_MODEL ?? process.env.MESH_DEFAULT_MODEL ?? "amazon/nova-micro-v1",
       response_format: { type: "json_object" },
       messages: [
         {

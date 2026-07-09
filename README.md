@@ -45,3 +45,14 @@ npm run eval:e2e:real
 ```
 
 `eval:e2e:real` is intentionally not mocked. It requires `SLOTWAALA_E2E_CUSTOMER_WHATSAPP` and sends real WhatsApp confirmation and reminder messages through Twilio.
+
+## Mesh Model Routing
+
+Every AI call is routed through Mesh API and stored in `mesh_traces` with the task, model, latency, input summary, and output summary. The default routing keeps routine WhatsApp work cheap while still using a stronger model for risk decisions:
+
+- `classify_inbound`: `amazon/nova-micro-v1`
+- `extract_booking_details`: `amazon/nova-lite-v1`
+- `draft_customer_reply`: `amazon/nova-lite-v1`
+- `check_message_policy`: `anthropic/claude-haiku-4.5`
+
+Override these with `MESH_CLASSIFIER_MODEL`, `MESH_EXTRACTION_MODEL`, `MESH_DRAFT_MODEL`, and `MESH_POLICY_MODEL`.
