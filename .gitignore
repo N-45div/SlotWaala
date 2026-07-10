@@ -12,5 +12,6 @@ coverage
 .DS_Store
 .vercel
 .eve/
+.workflow-data/
 pnpm-workspace.yaml
 .env*

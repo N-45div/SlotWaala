@@ -1,38 +1,32 @@
 import {
   Bell,
   CalendarCheck,
-  CheckCircle2,
-  Clock3,
+  ClipboardCheck,
   Inbox,
-  MessageCircle,
-  Send,
+  RefreshCw,
   ShieldCheck,
 } from "lucide-react";
-import {
-  approveBooking,
-  rejectBooking,
-  requestBookingInfo,
-  sendConfirmation,
-} from "@/app/actions";
+import { DashboardWorkspace } from "@/app/_components/dashboard-workspace";
 import { getDashboardData } from "@/lib/dashboard-data";
-
-const statusLabel = {
-  "needs-approval": "Approval",
-  "needs-info": "Need info",
-  approved: "Approved",
-  confirmed: "Confirmed",
-  rejected: "Rejected",
-  escalated: "Escalated",
-};
 
 export const dynamic = "force-dynamic";
 
-function canOwnerReview(status: keyof typeof statusLabel) {
-  return status === "needs-approval" || status === "needs-info";
+function formatLastUpdated(value: string) {
+  const updatedAt = new Date(value);
+
+  if (Number.isNaN(updatedAt.getTime())) {
+    return "Last sync unavailable";
+  }
+
+  return `Synced ${updatedAt.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
 }
 
 export default async function Home() {
-  const { bookingRequests, meshTraces, source, error } = await getDashboardData();
+  const { bookingRequests, meshTraces, metrics, source, error, updatedAt } =
+    await getDashboardData();
   const needsApproval = bookingRequests.filter(
     (request) => request.status === "needs-approval",
   ).length;
@@ -52,22 +46,22 @@ export default async function Home() {
         </div>
 
         <nav className="nav" aria-label="Primary">
-          <div className="nav-item active">
+          <a className="nav-item active" href="#queue">
             <Inbox size={18} />
             Queue
-          </div>
-          <div className="nav-item">
+          </a>
+          <a className="nav-item" href="#queue">
             <CalendarCheck size={18} />
             Bookings
-          </div>
-          <div className="nav-item">
+          </a>
+          <a className="nav-item" href="#reminders">
             <Bell size={18} />
             Reminders
-          </div>
-          <div className="nav-item">
+          </a>
+          <a className="nav-item" href="#traces">
             <ShieldCheck size={18} />
             Mesh trace
-          </div>
+          </a>
         </nav>
 
         <div className="sidebar-footer">
@@ -80,7 +74,7 @@ export default async function Home() {
           <div>
             <p className="eyebrow">Today&apos;s front desk</p>
             <h1>Customer messages into confirmed slots.</h1>
-            <p className="subtle">
+            <p className="subtle lead-copy">
               SlotWaala drafts replies, tracks missing details, and schedules
               WhatsApp reminders after owner approval.
             </p>
@@ -89,176 +83,54 @@ export default async function Home() {
             <span className={`data-source ${source}`}>
               {source === "neon" ? "Live Neon" : "Demo data"}
             </span>
-            <button className="button" type="button">
-              <MessageCircle size={18} />
-              Test WhatsApp
-            </button>
-            <button className="button primary" type="button">
-              <Send size={18} />
-              Approve draft
-            </button>
+            <span className="sync-status">{formatLastUpdated(updatedAt)}</span>
+            <a className="icon-button" href="/" title="Refresh dashboard" aria-label="Refresh dashboard">
+              <RefreshCw size={17} />
+            </a>
           </div>
         </div>
 
         {error ? (
-          <div className="notice">
+          <div className="notice" role="status">
             Live Neon data could not load. Showing demo data. {error}
           </div>
         ) : null}
 
         <section className="metrics" aria-label="Queue metrics">
           <div className="metric">
-            <div className="metric-label">Needs approval</div>
+            <div className="metric-heading">
+              <span className="metric-label">Needs approval</span>
+              <ClipboardCheck size={17} aria-hidden="true" />
+            </div>
             <div className="metric-value">{needsApproval}</div>
           </div>
           <div className="metric">
-            <div className="metric-label">Missing details</div>
+            <div className="metric-heading">
+              <span className="metric-label">Missing details</span>
+              <Inbox size={17} aria-hidden="true" />
+            </div>
             <div className="metric-value">{needsInfo}</div>
           </div>
           <div className="metric">
-            <div className="metric-label">Confirmed today</div>
+            <div className="metric-heading">
+              <span className="metric-label">Confirmed today</span>
+              <CalendarCheck size={17} aria-hidden="true" />
+            </div>
             <div className="metric-value">{confirmed}</div>
           </div>
-          <div className="metric">
-            <div className="metric-label">Due reminders</div>
-            <div className="metric-value">4</div>
+          <div className="metric emphasis">
+            <div className="metric-heading">
+              <span className="metric-label">Due reminders</span>
+              <Bell size={17} aria-hidden="true" />
+            </div>
+            <div className="metric-value">{metrics.dueReminders}</div>
           </div>
         </section>
 
-        <div className="workspace">
-          <section className="section">
-            <div className="section-header">
-              <h2 className="section-title">Booking Queue</h2>
-              <span className="subtle">{bookingRequests.length} active</span>
-            </div>
-            <div className="queue">
-              {bookingRequests.length > 0 ? (
-                bookingRequests.map((request) => (
-                  <article className="booking-row" key={request.id}>
-                    <div>
-                      <p className="booking-title">
-                        {request.customerName} · {request.service}
-                      </p>
-                      <p className="booking-meta">
-                        {request.area} · {request.preferredSlot} · {request.phone}
-                      </p>
-                      <p className="booking-message">{request.inboundMessage}</p>
-                      {canOwnerReview(request.status) ? (
-                        <div className="owner-controls">
-                          <form action={approveBooking}>
-                            <input
-                              name="bookingRequestId"
-                              type="hidden"
-                              value={request.id}
-                            />
-                            <input
-                              name="draftText"
-                              type="hidden"
-                              value={request.agentDraft}
-                            />
-                            <button className="mini-button approve" type="submit">
-                              Approve + send
-                            </button>
-                          </form>
-                          <form action={requestBookingInfo}>
-                            <input
-                              name="bookingRequestId"
-                              type="hidden"
-                              value={request.id}
-                            />
-                            <input
-                              name="note"
-                              type="hidden"
-                              value="Owner requested one more customer detail."
-                            />
-                            <button className="mini-button" type="submit">
-                              Need info
-                            </button>
-                          </form>
-                          <form action={rejectBooking}>
-                            <input
-                              name="bookingRequestId"
-                              type="hidden"
-                              value={request.id}
-                            />
-                            <button className="mini-button reject" type="submit">
-                              Reject
-                            </button>
-                          </form>
-                        </div>
-                      ) : null}
-                      {request.status === "approved" ? (
-                        <div className="owner-controls">
-                          <form action={sendConfirmation}>
-                            <input
-                              name="bookingRequestId"
-                              type="hidden"
-                              value={request.id}
-                            />
-                            <input
-                              name="draftText"
-                              type="hidden"
-                              value={request.agentDraft}
-                            />
-                            <button className="mini-button approve" type="submit">
-                              Send confirmation
-                            </button>
-                          </form>
-                        </div>
-                      ) : null}
-                    </div>
-                    <span className={`pill ${request.status}`}>
-                      {statusLabel[request.status]}
-                    </span>
-                  </article>
-                ))
-              ) : (
-                <div className="empty-state">
-                  Waiting for the first WhatsApp booking request.
-                </div>
-              )}
-            </div>
-          </section>
-
-          <aside className="section">
-            <div className="section-header">
-              <h2 className="section-title">Agent Draft</h2>
-              <Clock3 size={18} />
-            </div>
-            <div className="panel-body">
-              <div className="conversation">
-                <div className="bubble">
-                  <p className="bubble-label">Customer</p>
-                  <p className="bubble-text">
-                    {bookingRequests[0]?.inboundMessage ?? "No active booking selected."}
-                  </p>
-                </div>
-                <div className="bubble agent">
-                  <p className="bubble-label">SlotWaala draft</p>
-                  <p className="bubble-text">
-                    {bookingRequests[0]?.agentDraft ?? "Draft will appear after Mesh classification."}
-                  </p>
-                </div>
-              </div>
-
-              <div className="trace-list">
-                {meshTraces.length > 0 ? (
-                  meshTraces.map((trace) => (
-                    <div className="trace" key={trace.id}>
-                      <strong>{trace.task}</strong>
-                      <span className="subtle">
-                        {trace.model} · {trace.latencyMs} ms
-                      </span>
-                      <p className="booking-message">{trace.summary}</p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="empty-state compact">No Mesh traces yet.</div>
-                )}
-              </div>
-            </div>
-          </aside>
-        </div>
+        <DashboardWorkspace
+          bookingRequests={bookingRequests}
+          meshTraces={meshTraces}
+        />
       </main>
     </div>
   );

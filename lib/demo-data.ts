@@ -20,6 +20,7 @@ export type BookingRequest = {
 
 export type MeshTrace = {
   id: string;
+  bookingRequestId?: string;
   task: string;
   model: string;
   latencyMs: number;
@@ -71,6 +72,7 @@ export const bookingRequests: BookingRequest[] = [
 export const meshTraces: MeshTrace[] = [
   {
     id: "trace_910",
+    bookingRequestId: "bk_1042",
     task: "classify_inbound",
     model: "amazon/nova-micro-v1",
     latencyMs: 812,
@@ -78,6 +80,7 @@ export const meshTraces: MeshTrace[] = [
   },
   {
     id: "trace_911",
+    bookingRequestId: "bk_1042",
     task: "check_message_policy",
     model: "anthropic/claude-haiku-4.5",
     latencyMs: 1290,
@@ -85,6 +88,7 @@ export const meshTraces: MeshTrace[] = [
   },
   {
     id: "trace_912",
+    bookingRequestId: "bk_1042",
     task: "draft_customer_reply",
     model: "amazon/nova-lite-v1",
     latencyMs: 1044,

@@ -27,6 +27,7 @@ type BookingRow = {
 
 type TraceRow = {
   id: string;
+  booking_request_id: string | null;
   task: string;
   model: string;
   latency_ms: number;
@@ -34,9 +35,15 @@ type TraceRow = {
   created_at: string;
 };
 
+export type DashboardMetrics = {
+  dueReminders: number;
+};
+
 export type DashboardData = {
   bookingRequests: BookingRequest[];
   meshTraces: MeshTrace[];
+  metrics: DashboardMetrics;
+  updatedAt: string;
   source: "neon" | "demo";
   error?: string;
 };
@@ -87,24 +94,25 @@ async function fetchLiveDashboardData(): Promise<DashboardData> {
     limit 25
   `) as BookingRow[];
 
-  const selectedBookingId = bookingRows[0]?.id ?? null;
-  const traceRows = selectedBookingId
-    ? ((await sql`
-        select id, task, model, latency_ms, output_summary, created_at
-        from mesh_traces
-        where booking_request_id = ${selectedBookingId}
-        order by created_at desc
-        limit 8
-      `) as TraceRow[])
-    : ((await sql`
-        select id, task, model, latency_ms, output_summary, created_at
-        from mesh_traces
-        order by created_at desc
-        limit 8
-      `) as TraceRow[]);
+  const traceRows = (await sql`
+    select id, booking_request_id, task, model, latency_ms, output_summary, created_at
+    from mesh_traces
+    order by created_at desc
+    limit 24
+  `) as TraceRow[];
+  const reminderRows = (await sql`
+    select count(*)::int as due_reminders
+    from reminders
+    where status = 'scheduled'
+      and remind_at <= now() + interval '2 hours'
+  `) as Array<{ due_reminders: number }>;
 
   return {
     source: "neon",
+    metrics: {
+      dueReminders: reminderRows[0]?.due_reminders ?? 0,
+    },
+    updatedAt: new Date().toISOString(),
     bookingRequests: bookingRows.map((row) => ({
       id: row.id,
       customerName: bookingLabel(row.customer_name, "WhatsApp customer"),
@@ -118,6 +126,7 @@ async function fetchLiveDashboardData(): Promise<DashboardData> {
     })),
     meshTraces: traceRows.map((trace) => ({
       id: trace.id,
+      bookingRequestId: trace.booking_request_id ?? undefined,
       task: trace.task,
       model: trace.model,
       latencyMs: trace.latency_ms,
@@ -132,6 +141,8 @@ export async function getDashboardData(): Promise<DashboardData> {
       source: "demo",
       bookingRequests: demoBookingRequests,
       meshTraces: demoMeshTraces,
+      metrics: { dueReminders: 4 },
+      updatedAt: new Date().toISOString(),
     };
   }
 
@@ -142,6 +153,8 @@ export async function getDashboardData(): Promise<DashboardData> {
       source: "demo",
       bookingRequests: demoBookingRequests,
       meshTraces: demoMeshTraces,
+      metrics: { dueReminders: 4 },
+      updatedAt: new Date().toISOString(),
       error: error instanceof Error ? error.message : "Unable to load Neon dashboard data.",
     };
   }
