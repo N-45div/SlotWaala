@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { resolveEscalation } from "@/lib/escalations";
+import { bootstrapBusiness } from "@/lib/businesses";
 import { createSqlClient } from "@/lib/neon/server";
 import { sendRecoveryOffer } from "@/lib/recovery";
 import { recordOwnerAction, type OwnerActionKind } from "@/lib/owner-actions";
@@ -145,5 +146,10 @@ export async function sendRecoveryOfferAction(formData: FormData) {
   }
 
   await sendRecoveryOffer(recoveryOfferId);
+  revalidatePath("/");
+}
+
+export async function bootstrapBusinessAction(formData: FormData) {
+  await bootstrapBusiness(readString(formData, "businessName"));
   revalidatePath("/");
 }

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import {
   approveBooking,
+  bootstrapBusinessAction,
   rejectBooking,
   removeAvailabilityWindow,
   requestBookingInfo,
@@ -279,7 +280,13 @@ export function DashboardWorkspace({
                 </button>
               </form>
             ) : (
-              <div className="empty-state compact">A business is created after the first verified WhatsApp message.</div>
+              <form action={bootstrapBusinessAction} className="bootstrap-business-form">
+                <label>
+                  <span>Business name</span>
+                  <input name="businessName" placeholder="Your business" required type="text" />
+                </label>
+                <button className="mini-button approve" type="submit">Create booking desk</button>
+              </form>
             )}
 
             {availabilityWindows.length > 0 ? (
