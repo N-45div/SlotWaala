@@ -15,7 +15,8 @@ export type StoredBookingRequest = {
     | "approved"
     | "confirmed"
     | "rejected"
-    | "escalated";
+    | "escalated"
+    | "canceled";
   missing_fields: string[];
   agent_draft: string | null;
   created_at: string;

@@ -1,12 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-
-const sampleSlots = [
-  "Today 6:15 PM",
-  "Tomorrow 11:30 AM",
-  "Tomorrow 4:00 PM",
-  "Friday 7:00 PM",
-];
+import { findAvailableSlots } from "../../lib/availability.js";
+import { requireSlotWaalaSessionIds } from "../lib/session-context.js";
 
 export default defineTool({
   description: "Check available owner-configured slots for a requested service.",
@@ -14,12 +9,19 @@ export default defineTool({
     service: z.string(),
     preferredWindow: z.string().optional(),
   }),
-  execute: async ({ service, preferredWindow }) => {
+  execute: async ({ service, preferredWindow }, ctx) => {
+    const sessionIds = requireSlotWaalaSessionIds(ctx);
+    const availableSlots = await findAvailableSlots({
+      businessId: sessionIds.businessId,
+      service,
+      limit: 4,
+    });
+
     return {
       service,
       preferredWindow: preferredWindow ?? "not specified",
-      availableSlots: sampleSlots,
-      source: "demo_calendar",
+      availableSlots,
+      source: "configured_availability",
     };
   },
 });

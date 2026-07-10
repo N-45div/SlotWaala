@@ -1,4 +1,5 @@
 import twilio from "twilio";
+import { confirmSlotHold } from "@/lib/availability";
 import { createSqlClient } from "@/lib/neon/server";
 import { scheduleBookingReminder } from "@/lib/reminders";
 
@@ -91,6 +92,8 @@ export async function sendApprovedBookingConfirmation(input: {
       updated_at = now()
     where id = ${booking.id}
   `;
+
+  await confirmSlotHold(booking.id);
 
   await scheduleBookingReminder({
     bookingRequestId: booking.id,

@@ -12,7 +12,8 @@ export type BookingRequestStatus =
   | "needs_owner_approval"
   | "confirmed"
   | "rejected"
-  | "escalated";
+  | "escalated"
+  | "canceled";
 
 export type CustomerMessage = {
   from: string;

@@ -1,5 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+import { holdSlotForBooking } from "../../lib/availability.js";
 import { createBookingRequest } from "../lib/booking-store.js";
 import { requireSlotWaalaSessionIds } from "../lib/session-context.js";
 
@@ -13,6 +14,12 @@ export default defineTool({
     missingFields: z.array(z.string()).default([]),
     agentDraft: z.string().optional(),
     meshTraceId: z.string().optional(),
+    proposedSlot: z
+      .object({
+        startsAt: z.string(),
+        endsAt: z.string(),
+      })
+      .optional(),
   }),
   execute: async (input, ctx) => {
     const sessionIds = requireSlotWaalaSessionIds(ctx);
@@ -22,7 +29,7 @@ export default defineTool({
       conversationId: sessionIds.conversationId,
       service: input.service,
       area: input.area,
-      preferredSlot: input.preferredSlot,
+      preferredSlot: input.proposedSlot?.startsAt ?? input.preferredSlot,
       missingFields: input.missingFields,
       agentDraft: input.agentDraft,
       meshTraceId: input.meshTraceId,
@@ -30,6 +37,15 @@ export default defineTool({
         input.missingFields.length > 0 ? "needs_info" : "needs_owner_approval",
     });
 
-    return { booking };
+    const slotHold = input.proposedSlot
+      ? await holdSlotForBooking({
+          businessId: sessionIds.businessId,
+          bookingRequestId: booking.id,
+          startsAt: input.proposedSlot.startsAt,
+          endsAt: input.proposedSlot.endsAt,
+        })
+      : null;
+
+    return { booking, slotHold };
   },
 });

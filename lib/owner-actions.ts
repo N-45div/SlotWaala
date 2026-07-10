@@ -1,4 +1,5 @@
 import { createSqlClient } from "@/lib/neon/server";
+import { releaseSlotHold } from "@/lib/availability";
 
 export type OwnerActionKind = "approve" | "reject" | "request_info" | "escalate";
 
@@ -49,4 +50,8 @@ export async function recordOwnerAction(input: {
       updated_at = now()
     where id = ${input.bookingRequestId}
   `;
+
+  if (input.action === "reject" || input.action === "request_info" || input.action === "escalate") {
+    await releaseSlotHold(input.bookingRequestId);
+  }
 }

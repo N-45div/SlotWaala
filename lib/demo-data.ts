@@ -4,7 +4,8 @@ export type BookingStatus =
   | "approved"
   | "confirmed"
   | "rejected"
-  | "escalated";
+  | "escalated"
+  | "canceled";
 
 export type BookingRequest = {
   id: string;

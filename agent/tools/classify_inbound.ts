@@ -1,5 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+import { redactSensitiveData } from "../../lib/sensitive-data.js";
 import { generateMeshJson } from "../lib/mesh.js";
 import { requireSlotWaalaSessionIds } from "../lib/session-context.js";
 import { storeMeshTrace } from "../lib/trace-store.js";
@@ -34,7 +35,7 @@ export default defineTool({
       schemaName: "Classification",
       system:
         "You classify WhatsApp messages for a service-business booking desk. Return intent, language, urgency, sensitive-data risk, a short summary, and whether the message needs booking-detail extraction. Do not extract payment, bank, UPI, card, Aadhaar, or PAN details.",
-      prompt: JSON.stringify({ from, message }),
+      prompt: JSON.stringify({ from, message: redactSensitiveData(message) }),
     });
     const classification = ClassificationSchema.parse(result.object);
     const storedTrace = await storeMeshTrace({

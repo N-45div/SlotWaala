@@ -8,11 +8,13 @@ It is deliberately not a payment agent. SlotWaala does not read payment screensh
 
 1. A customer messages the business on WhatsApp.
 2. Twilio sends the signed webhook to Eve at `/eve/v1/twilio/messages`.
-3. Eve stores the inbound message in Neon and runs the SlotWaala agent.
-4. Every AI decision routes through Mesh API: classify intent, extract booking details, draft a reply, and check policy.
-5. The agent creates an owner-visible booking request or asks for a missing operational detail.
-6. The owner reviews the selected conversation, its Mesh traces, and the proposed reply in the dashboard.
-7. Only an owner-approved booking sends a customer confirmation. A confirmed booking can schedule a WhatsApp reminder.
+3. A deterministic gate blocks payment and identity data before it reaches Mesh. The owner sees only a redacted escalation.
+4. Eve stores safe inbound context in Neon and runs the SlotWaala agent.
+5. Every AI decision routes through Mesh API: classify intent, extract booking details, draft a reply, and check policy.
+6. The agent checks owner-configured service hours in Neon and creates a short slot hold only for a real open slot.
+7. The owner reviews the selected conversation, its Mesh traces, and the proposed reply in the dashboard.
+8. Only an owner-approved booking sends a customer confirmation. A confirmed booking can schedule a WhatsApp reminder.
+9. A cancellation releases the held slot and creates owner-approved WhatsApp offers for compatible waitlist entries.
 
 ## What The Owner Dashboard Shows
 
@@ -20,13 +22,14 @@ It is deliberately not a payment agent. SlotWaala does not read payment screensh
 - A selected conversation review surface instead of global, unconnected draft controls.
 - Per-booking Mesh traces with task, routed model, latency, and output summary.
 - Reminder workload calculated from the `reminders` table, not a static number.
-- Explicit operational guardrails for intake, approval, and payment-data blocking.
+- Owner-managed service hours, conflict-checked slot holds, and a cancellation recovery queue.
+- Explicit operational guardrails for intake, approval, and pre-Mesh payment-data blocking.
 
 ## Guardrails
 
 - Customer-facing confirmations require owner approval.
 - Ambiguous, risky, or sensitive requests can be escalated to the owner.
-- Payment and identity data are excluded from the automated workflow.
+- Payment and identity data are detected and redacted before the message reaches Mesh or the normal booking store.
 - Every model call visibly uses Mesh API. There is no direct provider key in the application.
 - Twilio inbound webhook validation is handled by Eve's built-in `twilioChannel`.
 

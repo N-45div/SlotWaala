@@ -20,10 +20,10 @@ flowchart LR
 
   Customer -->|message| Twilio
   Twilio -->|signed webhook| Eve
-  Eve -->|persist inbound context| Neon
+  Eve -->|redact sensitive content and persist safe context| Neon
   Eve -->|agent model + structured tools| Mesh
   Mesh -->|classification, extraction, draft, policy| Eve
-  Eve -->|booking request and traces| Neon
+  Eve -->|availability, slot hold, booking request and traces| Neon
 
   Owner -->|review and action| Web
   Web <-->|queue, conversation, traces| Neon
@@ -49,15 +49,16 @@ sequenceDiagram
 
   C->>T: WhatsApp booking request
   T->>E: Signed POST /eve/v1/twilio/messages
-  E->>N: Upsert customer, conversation, inbound message
+  E->>E: Block payment or identity data before Mesh
+  E->>N: Upsert customer, conversation, redacted inbound message
   E->>M: Agent model and booking tools via Mesh
   M-->>E: Intent, extracted details, policy, customer draft
-  E->>N: Create booking request and Mesh traces
+  E->>N: Check configured availability, create booking hold and Mesh traces
   O->>N: Read live queue and selected trace history
   O->>N: Approve, reject, or request a detail
   alt Owner approves
     O->>T: Send approved confirmation
-    O->>N: Schedule reminder
+    O->>N: Confirm held slot and schedule reminder
     T->>C: WhatsApp confirmation
   else Owner requests information or rejects
     O->>N: Store owner action
@@ -105,6 +106,10 @@ erDiagram
   BOOKING_REQUESTS ||--o{ MESH_TRACES : records_work
   BOOKING_REQUESTS ||--o{ OWNER_ACTIONS : is_reviewed_by
   BOOKING_REQUESTS ||--o{ REMINDERS : schedules
+  BUSINESSES ||--o{ AVAILABILITY_WINDOWS : configures
+  BOOKING_REQUESTS ||--|| SLOT_HOLDS : reserves
+  BUSINESSES ||--o{ ESCALATIONS : owns
+  WAITLIST_ENTRIES ||--o{ RECOVERY_OFFERS : receives
   CUSTOMERS ||--o{ REMINDERS : receives
 
   BUSINESSES {
@@ -157,6 +162,36 @@ erDiagram
     timestamptz remind_at
     text status
   }
+  AVAILABILITY_WINDOWS {
+    uuid id PK
+    uuid business_id FK
+    int weekday
+    time start_time
+    time end_time
+  }
+  SLOT_HOLDS {
+    uuid id PK
+    uuid booking_request_id FK
+    timestamptz starts_at
+    timestamptz ends_at
+    text status
+  }
+  ESCALATIONS {
+    uuid id PK
+    uuid business_id FK
+    text categories
+    text redacted_message
+  }
+  WAITLIST_ENTRIES {
+    uuid id PK
+    uuid business_id FK
+    text status
+  }
+  RECOVERY_OFFERS {
+    uuid id PK
+    uuid waitlist_entry_id FK
+    text status
+  }
 ```
 
 ## Trust Boundaries
@@ -165,7 +200,7 @@ erDiagram
 flowchart LR
   Public[Public internet] --> Twilio[Twilio signed webhook]
   Twilio --> Eve[Eve channel validation]
-  Eve --> Stored[Operational booking data in Neon]
+  Eve --> Stored[Redacted operational booking data in Neon]
   Eve --> Mesh[Mesh API only]
   Owner[Authenticated owner workflow] --> Actions[Approve, reject, request info]
   Actions --> Stored
@@ -174,4 +209,4 @@ flowchart LR
   Ambiguous[Ambiguous or risky request] -. escalate .-> Owner
 ```
 
-The dashboard gives the owner the final say on customer-facing confirmations. SlotWaala treats operational booking details as the automation boundary and leaves payments outside it.
+The dashboard gives the owner the final say on customer-facing confirmations and recovered-slot offers. SlotWaala treats operational booking details as the automation boundary and leaves payments outside it before any model call.

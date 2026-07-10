@@ -1,5 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+import { redactSensitiveData } from "../../lib/sensitive-data.js";
 import { generateMeshJson } from "../lib/mesh.js";
 import { requireSlotWaalaSessionIds } from "../lib/session-context.js";
 import { storeMeshTrace } from "../lib/trace-store.js";
@@ -28,7 +29,7 @@ export default defineTool({
       schemaName: "BookingDetails",
       system:
         "Extract booking details for an Indian service business. Only extract operational fields: customer name, service, area, preferred slot, missing fields, confidence, normalized summary. Never extract payment, bank, UPI, card, Aadhaar, PAN, or sensitive financial identity values.",
-      prompt: JSON.stringify(input),
+      prompt: redactSensitiveData(JSON.stringify(input)),
     });
     const bookingDetails = BookingDetailsSchema.parse(result.object);
     const storedTrace = await storeMeshTrace({

@@ -25,7 +25,18 @@ function formatLastUpdated(value: string) {
 }
 
 export default async function Home() {
-  const { bookingRequests, meshTraces, metrics, source, error, updatedAt } =
+  const {
+    bookingRequests,
+    meshTraces,
+    metrics,
+    business,
+    availabilityWindows,
+    escalations,
+    recoveryOffers,
+    source,
+    error,
+    updatedAt,
+  } =
     await getDashboardData();
   const needsApproval = bookingRequests.filter(
     (request) => request.status === "needs-approval",
@@ -125,11 +136,22 @@ export default async function Home() {
             </div>
             <div className="metric-value">{metrics.dueReminders}</div>
           </div>
+          <div className="metric alert-metric">
+            <div className="metric-heading">
+              <span className="metric-label">Owner escalations</span>
+              <ShieldCheck size={17} aria-hidden="true" />
+            </div>
+            <div className="metric-value">{metrics.openEscalations}</div>
+          </div>
         </section>
 
         <DashboardWorkspace
           bookingRequests={bookingRequests}
           meshTraces={meshTraces}
+          business={business}
+          availabilityWindows={availabilityWindows}
+          escalations={escalations}
+          recoveryOffers={recoveryOffers}
         />
       </main>
     </div>

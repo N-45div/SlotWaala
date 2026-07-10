@@ -1,5 +1,8 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
+import { createEscalation } from "../../lib/escalations.js";
+import { redactSensitiveData } from "../../lib/sensitive-data.js";
+import { requireSlotWaalaSessionIds } from "../lib/session-context.js";
 
 export default defineTool({
   description: "Escalate unclear, sensitive, or risky messages to the business owner.",
@@ -9,14 +12,20 @@ export default defineTool({
     message: z.string(),
     recommendedOwnerAction: z.string(),
   }),
-  execute: async (input) => {
+  execute: async (input, ctx) => {
+    const sessionIds = requireSlotWaalaSessionIds(ctx);
+    const escalation = await createEscalation({
+      businessId: sessionIds.businessId,
+      customerId: sessionIds.customerId,
+      conversationId: sessionIds.conversationId,
+      messageId: sessionIds.messageId,
+      reason: input.reason,
+      redactedMessage: redactSensitiveData(input.message),
+      recommendedOwnerAction: input.recommendedOwnerAction,
+    });
+
     return {
-      escalation: {
-        ...input,
-        id: `esc_${Math.random().toString(36).slice(2, 10)}`,
-        status: "open",
-        createdAt: new Date().toISOString(),
-      },
+      escalation,
     };
   },
 });
