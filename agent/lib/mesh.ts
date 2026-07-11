@@ -110,7 +110,7 @@ export async function generateMeshJson<T>(input: MeshJsonInput): Promise<MeshJso
     throw new Error("Mesh API response did not include message content.");
   }
 
-  const object = JSON.parse(content) as T;
+  const object = parseMeshJson<T>(content, input.task);
   const trace = MeshTraceSchema.parse({
     task: input.task,
     model,
@@ -120,4 +120,28 @@ export async function generateMeshJson<T>(input: MeshJsonInput): Promise<MeshJso
   });
 
   return { object, trace };
+}
+
+function parseMeshJson<T>(content: string, task: string): T {
+  const normalized = content
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "")
+    .trim();
+
+  try {
+    return JSON.parse(normalized) as T;
+  } catch {
+    const start = normalized.indexOf("{");
+    const end = normalized.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try {
+        return JSON.parse(normalized.slice(start, end + 1)) as T;
+      } catch {
+        // Fall through with a task-specific error below.
+      }
+    }
+
+    throw new Error(`Mesh ${task} returned invalid JSON.`);
+  }
 }
