@@ -40,6 +40,34 @@ export async function createBookingRequest(
   input: CreateBookingRequestInput,
 ): Promise<StoredBookingRequest> {
   const sql = createSqlClient();
+  const existingRows = await sql`
+    select
+      id,
+      business_id,
+      customer_id,
+      conversation_id,
+      service,
+      area,
+      preferred_slot,
+      status,
+      missing_fields,
+      agent_draft,
+      created_at,
+      updated_at
+    from booking_requests
+    where business_id = ${input.businessId}
+      and conversation_id = ${input.conversationId}
+      and status in ('approved', 'confirmed')
+    order by updated_at desc
+    limit 1
+  `;
+
+  // A post-confirmation acknowledgement must not create a second queue item.
+  // A new request with a concrete proposed slot is still allowed through.
+  if (existingRows[0] && !input.preferredSlot && !input.agentDraft) {
+    return existingRows[0] as StoredBookingRequest;
+  }
+
   const rows = await sql`
     insert into booking_requests (
       business_id,

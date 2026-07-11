@@ -718,6 +718,7 @@ h1 {
 }
 
 .trace {
+  min-width: 0;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -726,6 +727,15 @@ h1 {
 .trace strong {
   display: block;
   margin-bottom: 4px;
+}
+
+.trace .booking-message {
+  display: -webkit-box;
+  max-height: 4.35em;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .operations-strip {

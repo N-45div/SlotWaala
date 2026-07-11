@@ -130,6 +130,15 @@ function bookingLabel(value: string | null, fallback: string) {
   return value?.trim() || fallback;
 }
 
+function traceSummary(value: string) {
+  return value
+    .replace(/```(?:json)?/gi, "")
+    .replace(/```/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 220);
+}
+
 async function fetchLiveDashboardData(): Promise<DashboardData> {
   const sql = createSqlClient();
   const businessId = await resolveBusinessId();
@@ -276,7 +285,7 @@ async function fetchLiveDashboardData(): Promise<DashboardData> {
       task: trace.task,
       model: trace.model,
       latencyMs: trace.latency_ms,
-      summary: trace.output_summary,
+      summary: traceSummary(trace.output_summary),
     })),
   };
 }

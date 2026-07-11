@@ -19,14 +19,32 @@ const RawPolicySchema = z.object({
   ownerNote: z.string().optional(),
 });
 
-function normalizePolicy(value: z.infer<typeof RawPolicySchema>) {
+function localRisk(message: string) {
+  const normalized = message.toLowerCase();
+  const matches = [
+    ["payment", "payment request"],
+    ["upi", "UPI request"],
+    ["bank", "banking request"],
+    ["card", "card request"],
+    ["aadhaar", "identity request"],
+    ["pan", "identity request"],
+    ["medical", "medical advice request"],
+    ["legal", "legal advice request"],
+    ["financial advice", "financial advice request"],
+  ] as const;
+  return matches.filter(([needle]) => normalized.includes(needle)).map(([, reason]) => reason);
+}
+
+function normalizePolicy(value: z.infer<typeof RawPolicySchema>, message: string) {
   const riskLevel = value.riskLevel === "high" || value.riskLevel === "medium" ? value.riskLevel : "low";
   const shouldEscalate = value.shouldEscalate ?? riskLevel === "high";
+  const localReasons = localRisk(message);
+  const escalated = shouldEscalate || localReasons.length > 0;
   return {
-    allowedToContinue: value.allowedToContinue ?? !shouldEscalate,
-    shouldEscalate,
-    riskLevel,
-    riskReasons: value.riskReasons ?? [],
+    allowedToContinue: value.allowedToContinue ?? !escalated,
+    shouldEscalate: escalated,
+    riskLevel: escalated ? "high" : riskLevel,
+    riskReasons: [...new Set([...(value.riskReasons ?? []), ...localReasons])],
     blockedFields: value.blockedFields ?? [],
     ownerNote: value.ownerNote?.trim() || "No additional owner note.",
   };
@@ -74,7 +92,19 @@ export default defineTool({
         "You are SlotWaala's safety policy checker. Detect sensitive finance/identity/payment content, medical/legal/financial advice requests, unsafe automation, and ambiguous requests. Do not extract or repeat sensitive values. Only name the category of blocked data.",
       prompt: redactSensitiveData(JSON.stringify(input)),
     });
-    const policy = normalizePolicy(RawPolicySchema.parse(result.object));
+    const policy = normalizePolicy(RawPolicySchema.parse(result.object), input.message);
+    if (policy.shouldEscalate) {
+      await createEscalation({
+        businessId: sessionIds.businessId,
+        customerId: sessionIds.customerId,
+        conversationId: sessionIds.conversationId,
+        messageId: sessionIds.messageId,
+        categories: policy.blockedFields.length > 0 ? policy.blockedFields : ["owner_review"],
+        reason: policy.riskReasons.join(" ") || "The request requires owner review before automation.",
+        redactedMessage: redactSensitiveData(input.message),
+        recommendedOwnerAction: policy.ownerNote,
+      });
+    }
     const storedTrace = await storeMeshTrace({
       trace: result.trace,
       conversationId: sessionIds.conversationId,

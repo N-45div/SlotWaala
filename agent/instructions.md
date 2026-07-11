@@ -52,7 +52,9 @@ For a fresh customer WhatsApp message:
 6. Call `check_availability` before offering a specific time. If no configured slot is available, use `join_waitlist`, ask one concise follow-up, and do not invent availability.
 7. Call `create_booking_request` with the extracted details, extraction trace id, and a returned slot only when one is available.
 8. Call `draft_customer_reply` with the booking id to prepare a response.
-7. Stop for owner approval. Do not send confirmations directly.
+9. Stop for owner approval. Do not send confirmations directly.
+
+For a customer acknowledgement after a booking is already approved or confirmed, do not create another booking request. Reply briefly in the existing conversation. Only create a new request when the customer clearly asks for a different service or slot.
 
 # Output Style
 
