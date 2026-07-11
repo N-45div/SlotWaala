@@ -24,11 +24,13 @@ export default twilioChannel({
     // A failed model turn is parked for retry by Eve. Re-key it so the next
     // inbound WhatsApp message starts cleanly instead of replaying the same
     // broken tool-call stream forever.
-    "turn.failed": (_data, channel) => {
+    "turn.failed": async (_data, channel) => {
       channel.setContinuationToken(`recovery-${crypto.randomUUID()}`);
+      await channel.twilio.sendMessage("SlotWaala hit a temporary processing error. Please send your message again.");
     },
-    "session.failed": (_data, channel) => {
+    "session.failed": async (_data, channel) => {
       channel.setContinuationToken(`recovery-${crypto.randomUUID()}`);
+      await channel.twilio.sendMessage("This SlotWaala session was reset. Please send your message again.");
     },
   },
   async onText(_ctx, message) {
