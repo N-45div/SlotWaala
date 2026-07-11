@@ -131,12 +131,30 @@ function bookingLabel(value: string | null, fallback: string) {
 }
 
 function traceSummary(value: string) {
-  return value
+  const cleaned = value
     .replace(/```(?:json)?/gi, "")
     .replace(/```/g, "")
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 220);
+    .trim();
+
+  try {
+    const parsed = JSON.parse(cleaned) as Record<string, unknown>;
+    const source = Object.values(parsed).find(
+      (entry) => entry && typeof entry === "object" && !Array.isArray(entry),
+    );
+    const object = (source ?? parsed) as Record<string, unknown>;
+    return Object.entries(object)
+      .slice(0, 6)
+      .map(([key, entry]) => `${key.replaceAll("_", " ")}: ${Array.isArray(entry) ? entry.join(", ") : String(entry ?? "")}`)
+      .join(" · ")
+      .slice(0, 220);
+  } catch {
+    return cleaned
+      .replace(/[{}\[\]"]/g, "")
+      .replace(/\s*:\s*/g, ": ")
+      .replace(/\s*,\s*/g, " · ")
+      .slice(0, 220);
+  }
 }
 
 async function fetchLiveDashboardData(): Promise<DashboardData> {

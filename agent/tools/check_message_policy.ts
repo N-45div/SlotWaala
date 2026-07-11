@@ -31,20 +31,26 @@ function localRisk(message: string) {
     ["medical", "medical advice request"],
     ["legal", "legal advice request"],
     ["financial advice", "financial advice request"],
+    ["complaint", "complaint requires owner review"],
+    ["angry", "customer complaint requires owner review"],
+    ["refund", "refund request requires owner review"],
+    ["speak to a person", "customer requested owner contact"],
   ] as const;
   return matches.filter(([needle]) => normalized.includes(needle)).map(([, reason]) => reason);
 }
 
 function normalizePolicy(value: z.infer<typeof RawPolicySchema>, message: string) {
   const riskLevel = value.riskLevel === "high" || value.riskLevel === "medium" ? value.riskLevel : "low";
-  const shouldEscalate = value.shouldEscalate ?? riskLevel === "high";
   const localReasons = localRisk(message);
-  const escalated = shouldEscalate || localReasons.length > 0;
+  const modelRiskReasons = value.riskReasons ?? [];
+  const modelEscalation = value.shouldEscalate === true &&
+    (riskLevel === "high" || modelRiskReasons.length > 0);
+  const escalated = modelEscalation || localReasons.length > 0;
   return {
     allowedToContinue: value.allowedToContinue ?? !escalated,
     shouldEscalate: escalated,
     riskLevel: escalated ? "high" : riskLevel,
-    riskReasons: [...new Set([...(value.riskReasons ?? []), ...localReasons])],
+    riskReasons: [...new Set([...modelRiskReasons, ...localReasons])],
     blockedFields: value.blockedFields ?? [],
     ownerNote: value.ownerNote?.trim() || "No additional owner note.",
   };

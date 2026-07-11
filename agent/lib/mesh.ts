@@ -116,10 +116,22 @@ export async function generateMeshJson<T>(input: MeshJsonInput): Promise<MeshJso
     model,
     latencyMs: Date.now() - startedAt,
     inputSummary: input.prompt.slice(0, 180),
-    outputSummary: content.slice(0, 180),
+    outputSummary: summarizeMeshObject(object),
   });
 
   return { object, trace };
+}
+
+function summarizeMeshObject(value: unknown): string {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return String(value ?? "").slice(0, 220);
+  }
+
+  return Object.entries(value as Record<string, unknown>)
+    .slice(0, 6)
+    .map(([key, entry]) => `${key}: ${Array.isArray(entry) ? entry.join(", ") : String(entry ?? "")}`)
+    .join(" · ")
+    .slice(0, 220);
 }
 
 function unwrapSchemaObject<T>(value: T, schemaName: string): T {
