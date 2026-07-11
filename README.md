@@ -100,7 +100,7 @@ The default routing is cost-aware and visible in the dashboard trace:
 
 | Job | Default model through Mesh |
 | --- | --- |
-| Agent primary model | `anthropic/claude-haiku-4.5` |
+| Agent primary model | `openai/gpt-4o-mini` |
 | `classify_inbound` | `amazon/nova-micro-v1` |
 | `extract_booking_details` | `amazon/nova-lite-v1` |
 | `draft_customer_reply` | `amazon/nova-lite-v1` |
