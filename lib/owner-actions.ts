@@ -18,6 +18,23 @@ function statusForAction(action: OwnerActionKind): BookingStatus {
   return "needs_info";
 }
 
+export async function updateBookingDraft(input: {
+  bookingRequestId: string;
+  businessId: string;
+  draftText: string;
+}) {
+  const sql = createSqlClient();
+  const updated = await sql`
+    update booking_requests
+    set agent_draft = ${input.draftText.trim()}, updated_at = now()
+    where id = ${input.bookingRequestId}
+      and business_id = ${input.businessId}
+      and status in ('needs_info', 'needs_owner_approval', 'approved')
+    returning id
+  `;
+  if (updated.length === 0) throw new Error("Booking request cannot be edited in its current state.");
+}
+
 export async function recordOwnerAction(input: {
   bookingRequestId: string;
   businessId: string;

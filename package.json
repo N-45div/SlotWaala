@@ -12,7 +12,7 @@
     "agent:dev": "eve dev",
     "agent:eval": "eve eval",
     "eval:preflight": "node scripts/preflight.mjs",
-    "eval:e2e:real": "node scripts/e2e-real.mjs"
+    "eval:e2e:real": "node scripts/e2e-webhook.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.9",

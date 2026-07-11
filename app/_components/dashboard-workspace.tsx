@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useFormStatus } from "react-dom";
 import {
   CheckCircle2,
   Clock3,
@@ -14,6 +15,7 @@ import {
   rejectBooking,
   removeAvailabilityWindow,
   requestBookingInfo,
+  saveBookingDraft,
   resolveEscalationAction,
   saveAvailabilityWindow,
   sendRecoveryOfferAction,
@@ -101,13 +103,20 @@ export function DashboardWorkspace({
                         <span className="booking-message">{request.inboundMessage}</span>
                       </button>
                       {isSelected && canOwnerReview(request.status) ? (
-                        <div className="owner-controls">
+                        <div className="owner-review-panel">
+                          <form action={saveBookingDraft} className="draft-editor">
+                            <input name="bookingRequestId" type="hidden" value={request.id} />
+                            <label htmlFor={`draft-${request.id}`}>Edit customer reply</label>
+                            <textarea id={`draft-${request.id}`} name="draftText" defaultValue={request.agentDraft} rows={3} />
+                            <div className="draft-actions">
+                              <SubmitButton className="mini-button" pendingLabel="Saving draft...">Save draft</SubmitButton>
+                            </div>
+                          </form>
+                          <div className="owner-controls">
                           <form action={approveBooking}>
                             <input name="bookingRequestId" type="hidden" value={request.id} />
                             <input name="draftText" type="hidden" value={request.agentDraft} />
-                            <button className="mini-button approve" type="submit">
-                              Approve + send
-                            </button>
+                            <SubmitButton className="mini-button approve" pendingLabel="Sending...">Approve + send</SubmitButton>
                           </form>
                           <form action={requestBookingInfo}>
                             <input name="bookingRequestId" type="hidden" value={request.id} />
@@ -116,16 +125,13 @@ export function DashboardWorkspace({
                               type="hidden"
                               value="Owner requested one more customer detail."
                             />
-                            <button className="mini-button" type="submit">
-                              Ask for detail
-                            </button>
+                            <SubmitButton className="mini-button" pendingLabel="Updating...">Ask for detail</SubmitButton>
                           </form>
                           <form action={rejectBooking}>
                             <input name="bookingRequestId" type="hidden" value={request.id} />
-                            <button className="mini-button reject" type="submit">
-                              Reject
-                            </button>
+                            <SubmitButton className="mini-button reject" pendingLabel="Rejecting...">Reject</SubmitButton>
                           </form>
+                          </div>
                         </div>
                       ) : null}
                       {isSelected && request.status === "approved" ? (
@@ -133,9 +139,7 @@ export function DashboardWorkspace({
                           <form action={sendConfirmation}>
                             <input name="bookingRequestId" type="hidden" value={request.id} />
                             <input name="draftText" type="hidden" value={request.agentDraft} />
-                            <button className="mini-button approve" type="submit">
-                              Send confirmation
-                            </button>
+                            <SubmitButton className="mini-button approve" pendingLabel="Sending...">Send confirmation</SubmitButton>
                           </form>
                         </div>
                       ) : null}
@@ -334,7 +338,7 @@ export function DashboardWorkspace({
                     {escalation.recommendedOwnerAction ? <p>{escalation.recommendedOwnerAction}</p> : null}
                     <form action={resolveEscalationAction}>
                       <input name="escalationId" type="hidden" value={escalation.id} />
-                      <button className="mini-button" type="submit">Mark reviewed</button>
+                      <SubmitButton className="mini-button" pendingLabel="Saving...">Mark reviewed</SubmitButton>
                     </form>
                   </article>
                 ))}
@@ -373,7 +377,7 @@ export function DashboardWorkspace({
                 {offer.status === "pending_owner" ? (
                   <form action={sendRecoveryOfferAction}>
                     <input name="recoveryOfferId" type="hidden" value={offer.id} />
-                    <button className="mini-button approve" type="submit">Send offer</button>
+                    <SubmitButton className="mini-button approve" pendingLabel="Sending...">Send offer</SubmitButton>
                   </form>
                 ) : null}
               </div>
@@ -403,4 +407,17 @@ function formatSlot(startsAt: string, endsAt: string) {
   });
 
   return `${format.format(new Date(startsAt))} - ${endFormat.format(new Date(endsAt))}`;
+}
+
+function SubmitButton({
+  children,
+  pendingLabel,
+  className,
+}: {
+  children: React.ReactNode;
+  pendingLabel: string;
+  className: string;
+}) {
+  const { pending } = useFormStatus();
+  return <button className={className} disabled={pending} type="submit">{pending ? pendingLabel : children}</button>;
 }

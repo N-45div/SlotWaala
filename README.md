@@ -95,7 +95,7 @@ Copy `.env.example`; do not commit `.env.local`.
 | `DASHBOARD_ACCESS_TOKEN` | Sensitive owner token required to open the dashboard |
 | `CRON_SECRET` | Authorization for the reminder cron route |
 
-`SLOTWAALA_E2E_CUSTOMER_WHATSAPP` is only required for the real end-to-end evaluation because that check sends actual Twilio WhatsApp messages.
+`SLOTWAALA_E2E_CUSTOMER_WHATSAPP` and `SLOTWAALA_E2E_WEBHOOK_URL` are required for the real end-to-end evaluation. The check posts a Twilio-shaped inbound message to the configured Eve webhook and waits for the resulting booking request and Mesh traces.
 
 ## Deploy And Connect Twilio
 
@@ -118,7 +118,7 @@ npm run build
 npm run eval:preflight
 ```
 
-`npm run eval:e2e:real` is intentionally real, not mocked. It needs the Neon, Mesh, and Twilio credentials plus `SLOTWAALA_E2E_CUSTOMER_WHATSAPP`; it sends a real confirmation and reminder message to the specified WhatsApp number.
+`npm run eval:e2e:real` is intentionally real, not mocked. It needs Neon, the deployed Eve webhook, the Twilio business number, and `SLOTWAALA_E2E_CUSTOMER_WHATSAPP`. It verifies inbound persistence, agent processing, booking creation, and Mesh traces; owner approval remains a deliberate dashboard action.
 
 ## Repository Map
 

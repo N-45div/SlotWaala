@@ -7,7 +7,7 @@ import { resolveBusinessId } from "@/lib/businesses";
 import { requireDashboardAccess } from "@/lib/dashboard-auth";
 import { createSqlClient } from "@/lib/neon/server";
 import { sendRecoveryOffer } from "@/lib/recovery";
-import { recordOwnerAction, type OwnerActionKind } from "@/lib/owner-actions";
+import { recordOwnerAction, updateBookingDraft, type OwnerActionKind } from "@/lib/owner-actions";
 import { sendApprovedBookingConfirmation } from "@/lib/twilio/outbound";
 
 function readString(formData: FormData, key: string) {
@@ -64,6 +64,16 @@ export async function rejectBooking(formData: FormData) {
 
 export async function requestBookingInfo(formData: FormData) {
   await submitOwnerAction(formData, "request_info");
+}
+
+export async function saveBookingDraft(formData: FormData) {
+  await requireDashboardAccess();
+  const bookingRequestId = readString(formData, "bookingRequestId");
+  const businessId = await resolveBusinessId();
+  const draftText = readString(formData, "draftText").trim();
+  if (!bookingRequestId || !businessId || !draftText) throw new Error("A draft reply is required.");
+  await updateBookingDraft({ bookingRequestId, businessId, draftText });
+  revalidatePath("/");
 }
 
 export async function sendConfirmation(formData: FormData) {

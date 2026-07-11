@@ -81,6 +81,21 @@ function formatSlot(startsAt: string, endsAt: string) {
   return `${day}, ${startTime}-${endTime}`;
 }
 
+function preferredWindowMatches(preferredWindow: string | null, startsAt: string) {
+  const normalized = preferredWindow?.toLowerCase() ?? "";
+  if (!normalized) return false;
+  const hour = Number(new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "numeric",
+    hour12: false,
+  }).format(new Date(startsAt)));
+  if (normalized.includes("morning")) return hour >= 6 && hour < 12;
+  if (normalized.includes("afternoon")) return hour >= 12 && hour < 17;
+  if (normalized.includes("evening")) return hour >= 17 && hour < 22;
+  if (normalized.includes("night")) return hour >= 19 && hour < 24;
+  return false;
+}
+
 export async function joinWaitlist(input: {
   businessId: string;
   customerId: string;
@@ -166,7 +181,15 @@ export async function cancelBookingAndCreateRecoveryOffers(input: {
     where business_id = ${booking.business_id}
       and status = 'waiting'
       and (${booking.service}::text is null or service is null or lower(service) = lower(${booking.service}))
-    order by created_at asc
+    order by
+      case
+        when preferred_window ilike '%morning%' and extract(hour from (${booking.starts_at} at time zone 'Asia/Kolkata')) between 6 and 11 then 0
+        when preferred_window ilike '%afternoon%' and extract(hour from (${booking.starts_at} at time zone 'Asia/Kolkata')) between 12 and 16 then 0
+        when preferred_window ilike '%evening%' and extract(hour from (${booking.starts_at} at time zone 'Asia/Kolkata')) between 17 and 21 then 0
+        when preferred_window ilike '%night%' and extract(hour from (${booking.starts_at} at time zone 'Asia/Kolkata')) between 19 and 23 then 0
+        else 1
+      end,
+      created_at asc
     limit 3
   `) as WaitlistEntryRow[];
 
@@ -185,7 +208,7 @@ export async function cancelBookingAndCreateRecoveryOffers(input: {
         ${entry.id},
         ${booking.starts_at},
         ${booking.ends_at},
-        ${`A ${booking.service ?? "service"} slot opened for ${formatSlot(booking.starts_at, booking.ends_at)}. Reply YES if you would like it.`}
+        ${`A ${booking.service ?? "service"} slot opened for ${formatSlot(booking.starts_at, booking.ends_at)}${preferredWindowMatches(entry.preferred_window, booking.starts_at) ? `, matching your ${entry.preferred_window} preference` : ""}. Reply YES if you would like it.`}
       )
       on conflict (released_booking_request_id, waitlist_entry_id)
       do nothing

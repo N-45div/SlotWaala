@@ -106,6 +106,17 @@ export default async function Home() {
           </div>
         ) : null}
 
+        {!business ? (
+          <section className="setup-banner" aria-label="Finish setup">
+            <div>
+              <span className="operations-kicker">First step</span>
+              <strong>Create your booking desk before connecting customers.</strong>
+              <p>Set the business name and weekly hours below. SlotWaala will never invent availability.</p>
+            </div>
+            <a className="mini-button approve" href="#availability">Set up service hours</a>
+          </section>
+        ) : null}
+
         <section className="metrics" aria-label="Queue metrics">
           <div className="metric">
             <div className="metric-heading">

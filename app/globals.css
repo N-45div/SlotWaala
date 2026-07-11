@@ -165,6 +165,7 @@ a {
 
 .main {
   min-width: 0;
+  overflow: hidden;
   padding: 28px;
 }
 
@@ -264,6 +265,29 @@ h1 {
   color: #6f410c;
   font-size: 14px;
   line-height: 1.4;
+}
+
+.setup-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border: 1px solid #b9d9c5;
+  border-radius: 8px;
+  background: #edf8f1;
+}
+
+.setup-banner strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.setup-banner p {
+  margin: 0;
+  color: #52705d;
+  font-size: 13px;
 }
 
 .metrics {
@@ -519,8 +543,46 @@ h1 {
   margin-top: 12px;
 }
 
+.owner-review-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #cfe2d5;
+  border-radius: 8px;
+  background: #fbfefb;
+}
+
+.draft-editor {
+  display: grid;
+  gap: 6px;
+}
+
+.draft-editor label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.draft-editor textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.draft-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .mini-button {
-  min-height: 32px;
+  min-height: 40px;
   padding: 0 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -751,8 +813,8 @@ h1 {
 }
 
 .compact-icon {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
 }
 
 .escalation {
@@ -904,6 +966,37 @@ h1 {
     max-width: 100%;
   }
 
+  .sidebar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 14px 16px;
+  }
+
+  .brand {
+    font-size: 18px;
+  }
+
+  .nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .nav-item {
+    min-height: 44px;
+    justify-content: center;
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+
+  .nav-item svg {
+    flex: 0 0 auto;
+  }
+
+  .sidebar-footer {
+    display: none;
+  }
+
   .main {
     padding: 18px;
   }
@@ -912,6 +1005,22 @@ h1 {
   .booking-row {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    gap: 14px;
+  }
+
+  .topbar h1,
+  .lead-copy,
+  .section-support,
+  .queue-zero-state,
+  .review-zero-state,
+  .operations-strip,
+  .recovery-offer,
+  .metric,
+  .section {
+    overflow-wrap: anywhere;
   }
 
   .topbar > *,
@@ -928,8 +1037,21 @@ h1 {
     width: 100%;
   }
 
+  .setup-banner {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metric {
+    padding: 13px;
+  }
+
+  .metric-label {
+    font-size: 12px;
   }
 
   .availability-form {
@@ -947,8 +1069,18 @@ h1 {
   }
 
   .queue-zero-state {
+    grid-template-columns: 1fr;
     min-height: 220px;
     padding: 20px;
+  }
+
+  .queue-zero-icon {
+    margin-bottom: 2px;
+  }
+
+  .intake-checks {
+    display: grid;
+    gap: 8px;
   }
 
   .recovery-offer {
