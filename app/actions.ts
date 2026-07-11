@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { resolveEscalation } from "@/lib/escalations";
 import { bootstrapBusiness } from "@/lib/businesses";
+import { resolveBusinessId } from "@/lib/businesses";
+import { requireDashboardAccess } from "@/lib/dashboard-auth";
 import { createSqlClient } from "@/lib/neon/server";
 import { sendRecoveryOffer } from "@/lib/recovery";
 import { recordOwnerAction, type OwnerActionKind } from "@/lib/owner-actions";
@@ -14,14 +16,17 @@ function readString(formData: FormData, key: string) {
 }
 
 async function submitOwnerAction(formData: FormData, action: OwnerActionKind) {
+  await requireDashboardAccess();
   const bookingRequestId = readString(formData, "bookingRequestId");
+  const businessId = await resolveBusinessId();
 
-  if (!bookingRequestId) {
+  if (!bookingRequestId || !businessId) {
     throw new Error("bookingRequestId is required.");
   }
 
   await recordOwnerAction({
     bookingRequestId,
+    businessId,
     action,
     note: readString(formData, "note"),
     draftText: readString(formData, "draftText"),
@@ -30,21 +35,25 @@ async function submitOwnerAction(formData: FormData, action: OwnerActionKind) {
 }
 
 export async function approveBooking(formData: FormData) {
+  await requireDashboardAccess();
   const bookingRequestId = readString(formData, "bookingRequestId");
   const draftText = readString(formData, "draftText");
+  const businessId = await resolveBusinessId();
 
-  if (!bookingRequestId) {
+  if (!bookingRequestId || !businessId) {
     throw new Error("bookingRequestId is required.");
   }
 
   await recordOwnerAction({
     bookingRequestId,
+    businessId,
     action: "approve",
     draftText,
   });
   await sendApprovedBookingConfirmation({
     bookingRequestId,
     draftText,
+    businessId,
   });
   revalidatePath("/");
 }
@@ -58,29 +67,34 @@ export async function requestBookingInfo(formData: FormData) {
 }
 
 export async function sendConfirmation(formData: FormData) {
+  await requireDashboardAccess();
   const bookingRequestId = readString(formData, "bookingRequestId");
   const draftText = readString(formData, "draftText");
+  const businessId = await resolveBusinessId();
 
-  if (!bookingRequestId) {
+  if (!bookingRequestId || !businessId) {
     throw new Error("bookingRequestId is required.");
   }
 
   await sendApprovedBookingConfirmation({
     bookingRequestId,
     draftText,
+    businessId,
   });
   revalidatePath("/");
 }
 
 export async function saveAvailabilityWindow(formData: FormData) {
+  await requireDashboardAccess();
   const businessId = readString(formData, "businessId");
+  const activeBusinessId = await resolveBusinessId();
   const weekday = Number(readString(formData, "weekday"));
   const startTime = readString(formData, "startTime");
   const endTime = readString(formData, "endTime");
   const slotMinutes = Number(readString(formData, "slotMinutes"));
   const service = readString(formData, "service");
 
-  if (!businessId || !Number.isInteger(weekday) || weekday < 0 || weekday > 6) {
+  if (!businessId || businessId !== activeBusinessId || !Number.isInteger(weekday) || weekday < 0 || weekday > 6) {
     throw new Error("A business and valid weekday are required.");
   }
 
@@ -115,8 +129,10 @@ export async function saveAvailabilityWindow(formData: FormData) {
 }
 
 export async function removeAvailabilityWindow(formData: FormData) {
+  await requireDashboardAccess();
   const availabilityWindowId = readString(formData, "availabilityWindowId");
-  if (!availabilityWindowId) {
+  const businessId = await resolveBusinessId();
+  if (!availabilityWindowId || !businessId) {
     throw new Error("availabilityWindowId is required.");
   }
 
@@ -125,31 +141,37 @@ export async function removeAvailabilityWindow(formData: FormData) {
     update availability_windows
     set active = false
     where id = ${availabilityWindowId}
+      and business_id = ${businessId}
   `;
   revalidatePath("/");
 }
 
 export async function resolveEscalationAction(formData: FormData) {
+  await requireDashboardAccess();
   const escalationId = readString(formData, "escalationId");
-  if (!escalationId) {
+  const businessId = await resolveBusinessId();
+  if (!escalationId || !businessId) {
     throw new Error("escalationId is required.");
   }
 
-  await resolveEscalation(escalationId);
+  await resolveEscalation(escalationId, businessId);
   revalidatePath("/");
 }
 
 export async function sendRecoveryOfferAction(formData: FormData) {
+  await requireDashboardAccess();
   const recoveryOfferId = readString(formData, "recoveryOfferId");
-  if (!recoveryOfferId) {
+  const businessId = await resolveBusinessId();
+  if (!recoveryOfferId || !businessId) {
     throw new Error("recoveryOfferId is required.");
   }
 
-  await sendRecoveryOffer(recoveryOfferId);
+  await sendRecoveryOffer(recoveryOfferId, businessId);
   revalidatePath("/");
 }
 
 export async function bootstrapBusinessAction(formData: FormData) {
+  await requireDashboardAccess();
   await bootstrapBusiness(readString(formData, "businessName"));
   revalidatePath("/");
 }

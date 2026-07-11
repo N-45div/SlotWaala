@@ -20,12 +20,28 @@ function statusForAction(action: OwnerActionKind): BookingStatus {
 
 export async function recordOwnerAction(input: {
   bookingRequestId: string;
+  businessId: string;
   action: OwnerActionKind;
   note?: string;
   draftText?: string;
 }) {
   const sql = createSqlClient();
   const nextStatus = statusForAction(input.action);
+
+  const updated = await sql`
+    update booking_requests
+    set
+      status = ${nextStatus},
+      agent_draft = coalesce(${input.draftText?.trim() || null}, agent_draft),
+      updated_at = now()
+    where id = ${input.bookingRequestId}
+      and business_id = ${input.businessId}
+    returning id
+  `;
+
+  if (updated.length === 0) {
+    throw new Error("Booking request is not part of the active business.");
+  }
 
   await sql`
     insert into owner_actions (
@@ -40,15 +56,6 @@ export async function recordOwnerAction(input: {
       ${input.note?.trim() || null},
       ${input.draftText?.trim() || null}
     )
-  `;
-
-  await sql`
-    update booking_requests
-    set
-      status = ${nextStatus},
-      agent_draft = coalesce(${input.draftText?.trim() || null}, agent_draft),
-      updated_at = now()
-    where id = ${input.bookingRequestId}
   `;
 
   if (input.action === "reject" || input.action === "request_info" || input.action === "escalate") {

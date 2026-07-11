@@ -7,6 +7,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { DashboardWorkspace } from "@/app/_components/dashboard-workspace";
+import { requireDashboardAccess } from "@/lib/dashboard-auth";
 import { getDashboardData } from "@/lib/dashboard-data";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,7 @@ function formatLastUpdated(value: string) {
 }
 
 export default async function Home() {
+  await requireDashboardAccess();
   const {
     bookingRequests,
     meshTraces,
@@ -43,9 +45,6 @@ export default async function Home() {
   ).length;
   const needsInfo = bookingRequests.filter(
     (request) => request.status === "needs-info",
-  ).length;
-  const confirmed = bookingRequests.filter(
-    (request) => request.status === "confirmed",
   ).length;
 
   return (
@@ -127,7 +126,7 @@ export default async function Home() {
               <span className="metric-label">Confirmed today</span>
               <CalendarCheck size={17} aria-hidden="true" />
             </div>
-            <div className="metric-value">{confirmed}</div>
+            <div className="metric-value">{metrics.confirmedToday}</div>
           </div>
           <div className="metric emphasis">
             <div className="metric-heading">

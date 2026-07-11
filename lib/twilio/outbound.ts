@@ -1,5 +1,5 @@
 import twilio from "twilio";
-import { confirmSlotHold } from "@/lib/availability";
+import { confirmSlotHold, releaseSlotHold } from "@/lib/availability";
 import { createSqlClient } from "@/lib/neon/server";
 import { scheduleBookingReminder } from "@/lib/reminders";
 
@@ -33,7 +33,7 @@ function fallbackConfirmation(booking: ApprovedBooking) {
   return `Confirmed: ${service}${slot}. We will send a reminder before the appointment.`;
 }
 
-async function readApprovedBooking(bookingRequestId: string): Promise<ApprovedBooking> {
+async function readApprovedBooking(bookingRequestId: string, businessId: string): Promise<ApprovedBooking> {
   const sql = createSqlClient();
   const rows = await sql`
     select
@@ -48,6 +48,7 @@ async function readApprovedBooking(bookingRequestId: string): Promise<ApprovedBo
     join customers c on c.id = br.customer_id
     join businesses b on b.id = br.business_id
     where br.id = ${bookingRequestId}
+      and br.business_id = ${businessId}
       and br.status in ('approved', 'needs_owner_approval')
     limit 1
   `;
@@ -63,17 +64,31 @@ async function readApprovedBooking(bookingRequestId: string): Promise<ApprovedBo
 export async function sendApprovedBookingConfirmation(input: {
   bookingRequestId: string;
   draftText?: string;
+  businessId: string;
 }) {
-  const booking = await readApprovedBooking(input.bookingRequestId);
+  const booking = await readApprovedBooking(input.bookingRequestId, input.businessId);
   const body = input.draftText?.trim() || booking.agent_draft || fallbackConfirmation(booking);
+  const holdConfirmed = await confirmSlotHold(booking.id);
+
+  if (!holdConfirmed) {
+    throw new Error("The booking hold expired. Ask the customer for a fresh slot before confirming.");
+  }
+
   const from = booking.business_whatsapp_number ?? requireEnv("TWILIO_MESSAGING_FROM");
   const client = twilio(requireEnv("TWILIO_ACCOUNT_SID"), requireEnv("TWILIO_AUTH_TOKEN"));
-  const message = await client.messages.create({
-    from,
-    to: booking.customer_phone,
-    body,
-    statusCallback: env("TWILIO_STATUS_CALLBACK_URL"),
-  });
+  let message;
+
+  try {
+    message = await client.messages.create({
+      from,
+      to: booking.customer_phone,
+      body,
+      statusCallback: env("TWILIO_STATUS_CALLBACK_URL"),
+    });
+  } catch (error) {
+    await releaseSlotHold(booking.id);
+    throw error;
+  }
   const sql = createSqlClient();
 
   await sql`
@@ -91,9 +106,8 @@ export async function sendApprovedBookingConfirmation(input: {
       agent_draft = ${body},
       updated_at = now()
     where id = ${booking.id}
+      and business_id = ${input.businessId}
   `;
-
-  await confirmSlotHold(booking.id);
 
   await scheduleBookingReminder({
     bookingRequestId: booking.id,

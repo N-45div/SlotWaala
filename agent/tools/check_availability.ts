@@ -14,6 +14,7 @@ export default defineTool({
     const availableSlots = await findAvailableSlots({
       businessId: sessionIds.businessId,
       service,
+      preferredWindow,
       limit: 4,
     });
 

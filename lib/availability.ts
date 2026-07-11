@@ -61,10 +61,12 @@ export async function listAvailabilityWindows(businessId: string): Promise<Avail
 export async function findAvailableSlots(input: {
   businessId: string;
   service?: string;
+  preferredWindow?: string;
   limit?: number;
 }): Promise<AvailableSlot[]> {
   const sql = createSqlClient();
   const requestedService = input.service?.trim() || null;
+  const preferredRange = parsePreferredWindow(input.preferredWindow);
   const rows = (await sql`
     with candidate_slots as (
       select
@@ -94,6 +96,9 @@ export async function findAvailableSlots(input: {
     select starts_at, ends_at, service, timezone
     from candidate_slots candidate
     where candidate.starts_at > now()
+      and (${preferredRange?.startHour ?? null}::int is null
+        or extract(hour from (candidate.starts_at at time zone candidate.timezone)) >= ${preferredRange?.startHour ?? null}
+        and extract(hour from (candidate.starts_at at time zone candidate.timezone)) < ${preferredRange?.endHour ?? null})
       and not exists (
         select 1
         from slot_holds held
@@ -113,6 +118,16 @@ export async function findAvailableSlots(input: {
     service: row.service,
     timezone: row.timezone,
   }));
+}
+
+function parsePreferredWindow(value?: string) {
+  const normalized = value?.trim().toLowerCase() ?? "";
+  if (!normalized) return null;
+  if (normalized.includes("morning")) return { startHour: 6, endHour: 12 };
+  if (normalized.includes("afternoon")) return { startHour: 12, endHour: 17 };
+  if (normalized.includes("evening")) return { startHour: 17, endHour: 22 };
+  if (normalized.includes("night") || normalized.includes("tonight")) return { startHour: 19, endHour: 23 };
+  return null;
 }
 
 export async function holdSlotForBooking(input: {
@@ -191,13 +206,24 @@ export async function holdSlotForBooking(input: {
 
 export async function confirmSlotHold(bookingRequestId: string) {
   const sql = createSqlClient();
-  await sql`
+  const existing = await sql`
+    select id
+    from slot_holds
+    where booking_request_id = ${bookingRequestId}
+    limit 1
+  `;
+
+  if (existing.length === 0) return true;
+
+  const confirmed = await sql`
     update slot_holds
     set status = 'confirmed', expires_at = null, confirmed_at = now()
     where booking_request_id = ${bookingRequestId}
       and status = 'held'
       and expires_at > now()
+    returning id
   `;
+  return confirmed.length > 0;
 }
 
 export async function releaseSlotHold(bookingRequestId: string) {

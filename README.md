@@ -92,6 +92,7 @@ Copy `.env.example`; do not commit `.env.local`.
 | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MESSAGING_FROM` | WhatsApp inbound and outbound delivery |
 | `TWILIO_WHATSAPP_WEBHOOK_URL` | Public Eve webhook, for example `https://your-domain.vercel.app/eve/v1/twilio/messages` |
 | `NEXT_PUBLIC_APP_URL` | Public web origin used by Eve/Twilio configuration |
+| `DASHBOARD_ACCESS_TOKEN` | Sensitive owner token required to open the dashboard |
 | `CRON_SECRET` | Authorization for the reminder cron route |
 
 `SLOTWAALA_E2E_CUSTOMER_WHATSAPP` is only required for the real end-to-end evaluation because that check sends actual Twilio WhatsApp messages.

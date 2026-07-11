@@ -94,12 +94,13 @@ export async function createEscalation(input: {
   return mapEscalation(rows[0]);
 }
 
-export async function resolveEscalation(escalationId: string) {
+export async function resolveEscalation(escalationId: string, businessId: string) {
   const sql = createSqlClient();
   await sql`
     update escalations
     set status = 'resolved', resolved_at = now()
     where id = ${escalationId}
+      and business_id = ${businessId}
       and status = 'open'
   `;
 }

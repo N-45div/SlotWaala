@@ -1,5 +1,6 @@
 import { createSqlClient } from "@/lib/neon/server";
 import { listAvailabilityWindows, type AvailabilityWindow } from "@/lib/availability";
+import { resolveBusinessId } from "@/lib/businesses";
 import {
   bookingRequests as demoBookingRequests,
   meshTraces as demoMeshTraces,
@@ -68,6 +69,7 @@ type TraceRow = {
 export type DashboardMetrics = {
   dueReminders: number;
   openEscalations: number;
+  confirmedToday: number;
 };
 
 export type DashboardBusiness = {
@@ -130,10 +132,11 @@ function bookingLabel(value: string | null, fallback: string) {
 
 async function fetchLiveDashboardData(): Promise<DashboardData> {
   const sql = createSqlClient();
+  const businessId = await resolveBusinessId();
   const businessRows = (await sql`
     select id, name
     from businesses
-    order by created_at asc
+    where id = ${businessId}
     limit 1
   `) as BusinessRow[];
   const business = businessRows[0];
@@ -159,6 +162,7 @@ async function fetchLiveDashboardData(): Promise<DashboardData> {
       order by m.created_at desc
       limit 1
     ) latest_message on true
+    where br.business_id = ${businessId}
     order by br.updated_at desc
     limit 25
   `) as BookingRow[];
@@ -166,15 +170,28 @@ async function fetchLiveDashboardData(): Promise<DashboardData> {
   const traceRows = (await sql`
     select id, booking_request_id, task, model, latency_ms, output_summary, created_at
     from mesh_traces
+    where (
+      conversation_id in (select id from conversations where business_id = ${businessId})
+      or booking_request_id in (select id from booking_requests where business_id = ${businessId})
+    )
     order by created_at desc
     limit 24
   `) as TraceRow[];
   const reminderRows = (await sql`
     select count(*)::int as due_reminders
-    from reminders
-    where status = 'scheduled'
+    from reminders r
+    join booking_requests br on br.id = r.booking_request_id
+    where br.business_id = ${businessId}
+      and r.status = 'scheduled'
       and remind_at <= now() + interval '2 hours'
   `) as Array<{ due_reminders: number }>;
+  const confirmedRows = (await sql`
+    select count(*)::int as confirmed_today
+    from booking_requests
+    where business_id = ${businessId}
+      and status = 'confirmed'
+      and updated_at >= current_date
+  `) as Array<{ confirmed_today: number }>;
   const escalationRows = (await sql`
     select
       e.id,
@@ -188,7 +205,8 @@ async function fetchLiveDashboardData(): Promise<DashboardData> {
       c.phone as customer_phone
     from escalations e
     left join customers c on c.id = e.customer_id
-    where e.status = 'open'
+    where e.business_id = ${businessId}
+      and e.status = 'open'
     order by e.created_at desc
     limit 12
   `) as EscalationRow[];
@@ -206,7 +224,8 @@ async function fetchLiveDashboardData(): Promise<DashboardData> {
     from recovery_offers offer
     join waitlist_entries waitlist on waitlist.id = offer.waitlist_entry_id
     join customers customer on customer.id = waitlist.customer_id
-    where offer.status in ('pending_owner', 'sent')
+    where waitlist.business_id = ${businessId}
+      and offer.status in ('pending_owner', 'sent')
     order by offer.created_at desc
     limit 12
   `) as RecoveryOfferRow[];
@@ -216,6 +235,7 @@ async function fetchLiveDashboardData(): Promise<DashboardData> {
     metrics: {
       dueReminders: reminderRows[0]?.due_reminders ?? 0,
       openEscalations: escalationRows.length,
+      confirmedToday: confirmedRows[0]?.confirmed_today ?? 0,
     },
     business: business ? { id: business.id, name: business.name } : undefined,
     availabilityWindows,
@@ -267,7 +287,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       source: "demo",
       bookingRequests: demoBookingRequests,
       meshTraces: demoMeshTraces,
-      metrics: { dueReminders: 4, openEscalations: 0 },
+      metrics: { dueReminders: 4, openEscalations: 0, confirmedToday: 1 },
       availabilityWindows: [],
       escalations: [],
       recoveryOffers: [],
@@ -282,7 +302,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       source: "demo",
       bookingRequests: demoBookingRequests,
       meshTraces: demoMeshTraces,
-      metrics: { dueReminders: 4, openEscalations: 0 },
+      metrics: { dueReminders: 4, openEscalations: 0, confirmedToday: 1 },
       availabilityWindows: [],
       escalations: [],
       recoveryOffers: [],

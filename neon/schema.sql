@@ -1,4 +1,5 @@
 create extension if not exists "pgcrypto";
+create extension if not exists "btree_gist";
 
 create table if not exists businesses (
   id uuid primary key default gen_random_uuid(),
@@ -177,6 +178,15 @@ create unique index if not exists messages_external_id_idx on messages (external
 create index if not exists booking_requests_business_status_idx on booking_requests (business_id, status, updated_at desc);
 create index if not exists availability_windows_business_idx on availability_windows (business_id, weekday) where active;
 create index if not exists slot_holds_business_range_idx on slot_holds (business_id, starts_at, ends_at);
+alter table slot_holds
+  drop constraint if exists slot_holds_no_overlap;
+
+alter table slot_holds
+  add constraint slot_holds_no_overlap
+  exclude using gist (
+    business_id with =,
+    tstzrange(starts_at, ends_at, '[)') with &&
+  ) where (status in ('held', 'confirmed'));
 create index if not exists escalations_business_status_idx on escalations (business_id, status, created_at desc);
 create index if not exists waitlist_entries_business_status_idx on waitlist_entries (business_id, status, created_at);
 create index if not exists recovery_offers_status_idx on recovery_offers (status, created_at);

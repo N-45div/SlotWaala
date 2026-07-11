@@ -197,7 +197,7 @@ export async function cancelBookingAndCreateRecoveryOffers(input: {
   return { canceledBookingId: booking.id, offers };
 }
 
-async function readRecoveryOffer(recoveryOfferId: string): Promise<RecoveryOfferRow> {
+async function readRecoveryOffer(recoveryOfferId: string, businessId: string): Promise<RecoveryOfferRow> {
   const sql = createSqlClient();
   const rows = (await sql`
     select
@@ -219,6 +219,7 @@ async function readRecoveryOffer(recoveryOfferId: string): Promise<RecoveryOffer
     join customers customer on customer.id = waitlist.customer_id
     join businesses business on business.id = waitlist.business_id
     where offer.id = ${recoveryOfferId}
+      and waitlist.business_id = ${businessId}
     limit 1
   `) as RecoveryOfferRow[];
   const offer = rows[0];
@@ -227,8 +228,8 @@ async function readRecoveryOffer(recoveryOfferId: string): Promise<RecoveryOffer
   return offer;
 }
 
-export async function sendRecoveryOffer(recoveryOfferId: string) {
-  const offer = await readRecoveryOffer(recoveryOfferId);
+export async function sendRecoveryOffer(recoveryOfferId: string, businessId: string) {
+  const offer = await readRecoveryOffer(recoveryOfferId, businessId);
   if (offer.status !== "pending_owner") {
     throw new Error("Only a pending recovery offer can be sent.");
   }

@@ -33,3 +33,37 @@ export async function bootstrapBusiness(name: string) {
   `;
   return rows[0];
 }
+
+export async function resolveBusinessId() {
+  const sql = createSqlClient();
+  const explicitBusinessId = process.env.SLOTWAALA_BUSINESS_ID?.trim();
+
+  if (explicitBusinessId) {
+    const rows = await sql`
+      select id
+      from businesses
+      where id = ${explicitBusinessId}
+      limit 1
+    `;
+    if (rows[0]) return rows[0].id as string;
+  }
+
+  const whatsappNumber = configuredWhatsAppNumber();
+  if (whatsappNumber) {
+    const rows = await sql`
+      select id
+      from businesses
+      where whatsapp_number = ${whatsappNumber}
+      limit 1
+    `;
+    if (rows[0]) return rows[0].id as string;
+  }
+
+  const rows = await sql`
+    select id
+    from businesses
+    order by created_at asc
+    limit 1
+  `;
+  return (rows[0]?.id as string | undefined) ?? null;
+}
