@@ -10,14 +10,27 @@ import { generateMeshJson } from "../lib/mesh.js";
 import { requireSlotWaalaSessionIds } from "../lib/session-context.js";
 import { storeMeshTrace } from "../lib/trace-store.js";
 
-const PolicySchema = z.object({
-  allowedToContinue: z.boolean(),
-  shouldEscalate: z.boolean(),
-  riskLevel: z.enum(["low", "medium", "high"]),
-  riskReasons: z.array(z.string()),
-  blockedFields: z.array(z.string()),
-  ownerNote: z.string(),
+const RawPolicySchema = z.object({
+  allowedToContinue: z.boolean().optional(),
+  shouldEscalate: z.boolean().optional(),
+  riskLevel: z.string().optional(),
+  riskReasons: z.array(z.string()).optional(),
+  blockedFields: z.array(z.string()).optional(),
+  ownerNote: z.string().optional(),
 });
+
+function normalizePolicy(value: z.infer<typeof RawPolicySchema>) {
+  const riskLevel = value.riskLevel === "high" || value.riskLevel === "medium" ? value.riskLevel : "low";
+  const shouldEscalate = value.shouldEscalate ?? riskLevel === "high";
+  return {
+    allowedToContinue: value.allowedToContinue ?? !shouldEscalate,
+    shouldEscalate,
+    riskLevel,
+    riskReasons: value.riskReasons ?? [],
+    blockedFields: value.blockedFields ?? [],
+    ownerNote: value.ownerNote?.trim() || "No additional owner note.",
+  };
+}
 
 export default defineTool({
   description:
@@ -54,14 +67,14 @@ export default defineTool({
       };
     }
 
-    const result = await generateMeshJson<z.infer<typeof PolicySchema>>({
+    const result = await generateMeshJson<z.infer<typeof RawPolicySchema>>({
       task: "check_message_policy",
       schemaName: "MessagePolicy",
       system:
         "You are SlotWaala's safety policy checker. Detect sensitive finance/identity/payment content, medical/legal/financial advice requests, unsafe automation, and ambiguous requests. Do not extract or repeat sensitive values. Only name the category of blocked data.",
       prompt: redactSensitiveData(JSON.stringify(input)),
     });
-    const policy = PolicySchema.parse(result.object);
+    const policy = normalizePolicy(RawPolicySchema.parse(result.object));
     const storedTrace = await storeMeshTrace({
       trace: result.trace,
       conversationId: sessionIds.conversationId,
