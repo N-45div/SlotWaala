@@ -20,6 +20,17 @@ export default twilioChannel({
     from: env("TWILIO_MESSAGING_FROM"),
     statusCallbackUrl: env("TWILIO_STATUS_CALLBACK_URL"),
   },
+  events: {
+    // A failed model turn is parked for retry by Eve. Re-key it so the next
+    // inbound WhatsApp message starts cleanly instead of replaying the same
+    // broken tool-call stream forever.
+    "turn.failed": (_data, channel) => {
+      channel.setContinuationToken(`recovery-${crypto.randomUUID()}`);
+    },
+    "session.failed": (_data, channel) => {
+      channel.setContinuationToken(`recovery-${crypto.randomUUID()}`);
+    },
+  },
   async onText(_ctx, message) {
     const categories = detectSensitiveData(message.body);
     const redactedBody = categories.length > 0
