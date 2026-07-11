@@ -180,7 +180,3 @@ The evaluation posts a Twilio-shaped inbound message to the configured Eve webho
 | `neon/schema.sql` | Booking, message, slot, trace, owner-action, and reminder tables |
 | `scripts/` | Preflight and real webhook evaluation |
 | `ARCHITECTURE.md` | Mermaid diagrams and trust boundaries |
-
-## Demo
-
-The private demo runbook is kept outside the public repository in `.internal/DEMO_RUNBOOK.md`.
