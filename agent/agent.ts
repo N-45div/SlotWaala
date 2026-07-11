@@ -14,7 +14,7 @@ export default defineAgent({
   model: mesh.chat(
     process.env.MESH_AGENT_MODEL ??
       process.env.MESH_DEFAULT_MODEL ??
-      "amazon/nova-lite-v1",
+      "anthropic/claude-haiku-4.5",
   ),
   description:
     "SlotWaala is a WhatsApp front-desk agent that converts customer messages into owner-approved booking requests, confirmations, and reminders for Indian service businesses.",
