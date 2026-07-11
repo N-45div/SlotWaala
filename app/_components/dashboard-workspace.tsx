@@ -50,6 +50,7 @@ type DashboardWorkspaceProps = {
   availabilityWindows: AvailabilityWindow[];
   escalations: DashboardEscalation[];
   recoveryOffers: DashboardRecoveryOffer[];
+  readOnly: boolean;
 };
 
 const weekdayLabels = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -61,6 +62,7 @@ export function DashboardWorkspace({
   availabilityWindows,
   escalations,
   recoveryOffers,
+  readOnly,
 }: DashboardWorkspaceProps) {
   const firstActionable = bookingRequests.find((request) => canOwnerReview(request.status));
   const [selectedBookingId, setSelectedBookingId] = useState(firstActionable?.id ?? bookingRequests[0]?.id);
@@ -102,7 +104,7 @@ export function DashboardWorkspace({
                         </span>
                         <span className="booking-message">{request.inboundMessage}</span>
                       </button>
-                      {isSelected && canOwnerReview(request.status) ? (
+                      {isSelected && canOwnerReview(request.status) && !readOnly ? (
                         <div className="owner-review-panel">
                           <form action={saveBookingDraft} className="draft-editor">
                             <input name="bookingRequestId" type="hidden" value={request.id} />
@@ -134,7 +136,7 @@ export function DashboardWorkspace({
                           </div>
                         </div>
                       ) : null}
-                      {isSelected && request.status === "approved" ? (
+                      {isSelected && request.status === "approved" && !readOnly ? (
                         <div className="owner-controls">
                           <form action={sendConfirmation}>
                             <input name="bookingRequestId" type="hidden" value={request.id} />
@@ -248,7 +250,7 @@ export function DashboardWorkspace({
             <span className="queue-count">{availabilityWindows.length} windows</span>
           </div>
           <div className="panel-body">
-            {business ? (
+            {business && !readOnly ? (
               <form action={saveAvailabilityWindow} className="availability-form">
                 <input name="businessId" type="hidden" value={business.id} />
                 <label>
@@ -279,11 +281,9 @@ export function DashboardWorkspace({
                   <span>Service (optional)</span>
                   <input name="service" placeholder="All services" type="text" />
                 </label>
-                <button className="mini-button approve availability-submit" type="submit">
-                  Add hours
-                </button>
+                    {!readOnly ? <button className="mini-button approve availability-submit" type="submit">Add hours</button> : null}
               </form>
-            ) : (
+            ) : !business && !readOnly ? (
               <form action={bootstrapBusinessAction} className="bootstrap-business-form">
                 <label>
                   <span>Business name</span>
@@ -291,6 +291,11 @@ export function DashboardWorkspace({
                 </label>
                 <button className="mini-button approve" type="submit">Create booking desk</button>
               </form>
+            ) : (
+              <div className="demo-readonly-note">
+                <strong>Judge preview</strong>
+                <p>Service hours are visible from live Neon data. Editing is disabled for this access token.</p>
+              </div>
             )}
 
             {availabilityWindows.length > 0 ? (
@@ -301,12 +306,12 @@ export function DashboardWorkspace({
                       <strong>{window.service || "All services"}</strong>
                       <span>{weekdayLabels[window.weekday]} · {window.startTime.slice(0, 5)}-{window.endTime.slice(0, 5)} · {window.slotMinutes} min</span>
                     </div>
-                    <form action={removeAvailabilityWindow}>
+                    {!readOnly ? <form action={removeAvailabilityWindow}>
                       <input name="availabilityWindowId" type="hidden" value={window.id} />
                       <button className="icon-button compact-icon" title="Remove service hours" type="submit" aria-label="Remove service hours">
                         <Trash2 size={15} />
                       </button>
-                    </form>
+                    </form> : null}
                   </div>
                 ))}
               </div>
@@ -336,10 +341,10 @@ export function DashboardWorkspace({
                     <p>{escalation.reason}</p>
                     <p className="escalation-redacted">{escalation.redactedMessage}</p>
                     {escalation.recommendedOwnerAction ? <p>{escalation.recommendedOwnerAction}</p> : null}
-                    <form action={resolveEscalationAction}>
+                    {!readOnly ? <form action={resolveEscalationAction}>
                       <input name="escalationId" type="hidden" value={escalation.id} />
                       <SubmitButton className="mini-button" pendingLabel="Saving...">Mark reviewed</SubmitButton>
-                    </form>
+                    </form> : null}
                   </article>
                 ))}
               </div>
@@ -374,7 +379,7 @@ export function DashboardWorkspace({
               </div>
               <div className="recovery-action">
                 <span className={`pill recovery-${offer.status}`}>{offer.status === "pending_owner" ? "Owner review" : "Offer sent"}</span>
-                {offer.status === "pending_owner" ? (
+                {offer.status === "pending_owner" && !readOnly ? (
                   <form action={sendRecoveryOfferAction}>
                     <input name="recoveryOfferId" type="hidden" value={offer.id} />
                     <SubmitButton className="mini-button approve" pendingLabel="Sending...">Send offer</SubmitButton>

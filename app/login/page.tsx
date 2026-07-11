@@ -1,5 +1,5 @@
-import { loginDashboard } from "@/app/auth-actions";
-import { dashboardAuthConfigured } from "@/lib/dashboard-auth";
+import { enterDemoDashboard, loginDashboard } from "@/app/auth-actions";
+import { dashboardAuthConfigured, demoAccessConfigured } from "@/lib/dashboard-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +10,7 @@ export default async function Login({
 }) {
   const params = await searchParams;
   const configured = dashboardAuthConfigured();
+  const demoConfigured = demoAccessConfigured();
 
   return (
     <main className="login-shell">
@@ -20,14 +21,23 @@ export default async function Login({
         </div>
         <p className="eyebrow">Owner access</p>
         <h1>Open your front desk.</h1>
-        <p className="subtle">Enter the owner access token configured for this business.</p>
+        <p className="subtle">Use the owner token for full control, or the judge token for a read-only product tour.</p>
         {!configured ? (
           <div className="notice" role="alert">
-            Owner access is not configured. Set <code>DASHBOARD_ACCESS_TOKEN</code> before opening the production dashboard.
+            Set <code>DASHBOARD_ACCESS_TOKEN</code> or <code>DEMO_ACCESS_TOKEN</code> before opening the production dashboard.
           </div>
         ) : null}
         {params.error === "invalid" ? (
           <div className="notice" role="alert">That access token was not accepted.</div>
+        ) : null}
+        {params.error === "demo-unavailable" ? (
+          <div className="notice" role="alert">The judge preview is not configured yet.</div>
+        ) : null}
+        {demoConfigured ? (
+          <form action={enterDemoDashboard} className="demo-login-form">
+            <button className="mini-button demo-button" type="submit">View judge demo</button>
+            <p>Read-only access to the live queue, conversation review, availability, and Mesh trace.</p>
+          </form>
         ) : null}
         <form action={loginDashboard} className="login-form">
           <label htmlFor="accessToken">Access token</label>

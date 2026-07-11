@@ -3,9 +3,17 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 const ownerCookie = "slotwaala_owner_access";
+const accessModeCookie = "slotwaala_access_mode";
+
+export type DashboardAccessMode = "owner" | "demo";
 
 function configuredToken() {
   const value = process.env.DASHBOARD_ACCESS_TOKEN?.trim();
+  return value || null;
+}
+
+function configuredDemoToken() {
+  const value = process.env.DEMO_ACCESS_TOKEN?.trim();
   return value || null;
 }
 
@@ -17,31 +25,89 @@ function tokensMatch(received: string | undefined, expected: string) {
 }
 
 export function dashboardAuthConfigured() {
-  return Boolean(configuredToken());
+  return Boolean(configuredToken() || configuredDemoToken());
+}
+
+export function demoAccessConfigured() {
+  return Boolean(configuredDemoToken());
+}
+
+export async function dashboardAccessMode(): Promise<DashboardAccessMode | null> {
+  const expected = configuredToken();
+  const demo = configuredDemoToken();
+  if (!expected && !demo) return process.env.NODE_ENV !== "production" ? "owner" : null;
+
+  const store = await cookies();
+  const received = store.get(ownerCookie)?.value;
+  if (expected && tokensMatch(received, expected)) return "owner";
+  if (demo && tokensMatch(received, demo)) return "demo";
+  return null;
 }
 
 export async function dashboardAccessIsValid() {
-  const expected = configuredToken();
-  if (!expected) return process.env.NODE_ENV !== "production";
+  return Boolean(await dashboardAccessMode());
+}
 
-  const store = await cookies();
-  return tokensMatch(store.get(ownerCookie)?.value, expected);
+export async function requireDashboardWriteAccess() {
+  const mode = await dashboardAccessMode();
+  if (!mode) redirect("/login");
+  if (mode === "demo") {
+    throw new Error("Demo access is read-only.");
+  }
 }
 
 export async function requireDashboardAccess() {
-  if (!(await dashboardAccessIsValid())) {
+  const mode = await dashboardAccessMode();
+  if (!mode) {
     redirect("/login");
   }
+  return mode;
 }
 
 export async function signInDashboard(token: string) {
   const expected = configuredToken();
-  if (!expected || !tokensMatch(token.trim(), expected)) {
+  const demo = configuredDemoToken();
+  const received = token.trim();
+  const mode = expected && tokensMatch(received, expected)
+    ? "owner"
+    : demo && tokensMatch(received, demo)
+      ? "demo"
+      : null;
+  if (!mode) {
     return false;
   }
 
   const store = await cookies();
-  store.set(ownerCookie, expected, {
+  store.set(ownerCookie, received, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 12,
+    path: "/",
+  });
+  store.set(accessModeCookie, mode, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 12,
+    path: "/",
+  });
+  return true;
+}
+
+export async function signInDemoDashboard() {
+  const demo = configuredDemoToken();
+  if (!demo) return false;
+
+  const store = await cookies();
+  store.set(ownerCookie, demo, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 12,
+    path: "/",
+  });
+  store.set(accessModeCookie, "demo", {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

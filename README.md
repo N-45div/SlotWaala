@@ -143,7 +143,12 @@ Open `http://localhost:3000`, enter the owner access token, create the booking d
 6. Create the business and service hours in the dashboard.
 7. Send a real WhatsApp booking request and verify it appears in the queue.
 
-The production dashboard is protected by `DASHBOARD_ACCESS_TOKEN`. Keep that token private.
+The production dashboard supports two access levels:
+
+- `DASHBOARD_ACCESS_TOKEN` gives the owner full control.
+- `DEMO_ACCESS_TOKEN` gives judges a read-only live product tour.
+
+Keep both tokens private. The demo token cannot approve bookings, send WhatsApp messages, change service hours, resolve escalations, or send recovery offers.
 
 ## Real verification
 

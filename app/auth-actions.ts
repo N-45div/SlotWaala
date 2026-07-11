@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { signInDashboard } from "@/lib/dashboard-auth";
+import { signInDashboard, signInDemoDashboard } from "@/lib/dashboard-auth";
 
 export async function loginDashboard(formData: FormData) {
   const token = formData.get("accessToken");
@@ -11,5 +11,11 @@ export async function loginDashboard(formData: FormData) {
     redirect("/login?error=invalid");
   }
 
+  redirect("/");
+}
+
+export async function enterDemoDashboard() {
+  const valid = await signInDemoDashboard();
+  if (!valid) redirect("/login?error=demo-unavailable");
   redirect("/");
 }

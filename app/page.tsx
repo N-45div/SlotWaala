@@ -26,7 +26,7 @@ function formatLastUpdated(value: string) {
 }
 
 export default async function Home() {
-  await requireDashboardAccess();
+  const accessMode = await requireDashboardAccess();
   const {
     bookingRequests,
     meshTraces,
@@ -93,6 +93,7 @@ export default async function Home() {
             <span className={`data-source ${source}`}>
               {source === "neon" ? "Live Neon" : "Demo data"}
             </span>
+            {accessMode === "demo" ? <span className="demo-access-badge">Judge preview · read-only</span> : null}
             <span className="sync-status">{formatLastUpdated(updatedAt)}</span>
             <a className="icon-button" href="/" title="Refresh dashboard" aria-label="Refresh dashboard">
               <RefreshCw size={17} />
@@ -162,6 +163,7 @@ export default async function Home() {
           availabilityWindows={availabilityWindows}
           escalations={escalations}
           recoveryOffers={recoveryOffers}
+          readOnly={accessMode === "demo"}
         />
       </main>
     </div>

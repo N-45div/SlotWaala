@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { resolveEscalation } from "@/lib/escalations";
 import { bootstrapBusiness } from "@/lib/businesses";
 import { resolveBusinessId } from "@/lib/businesses";
-import { requireDashboardAccess } from "@/lib/dashboard-auth";
+import { requireDashboardWriteAccess } from "@/lib/dashboard-auth";
 import { createSqlClient } from "@/lib/neon/server";
 import { sendRecoveryOffer } from "@/lib/recovery";
 import { recordOwnerAction, updateBookingDraft, type OwnerActionKind } from "@/lib/owner-actions";
@@ -16,7 +16,7 @@ function readString(formData: FormData, key: string) {
 }
 
 async function submitOwnerAction(formData: FormData, action: OwnerActionKind) {
-  await requireDashboardAccess();
+  await requireDashboardWriteAccess();
   const bookingRequestId = readString(formData, "bookingRequestId");
   const businessId = await resolveBusinessId();
 
@@ -35,7 +35,7 @@ async function submitOwnerAction(formData: FormData, action: OwnerActionKind) {
 }
 
 export async function approveBooking(formData: FormData) {
-  await requireDashboardAccess();
+  await requireDashboardWriteAccess();
   const bookingRequestId = readString(formData, "bookingRequestId");
   const draftText = readString(formData, "draftText");
   const businessId = await resolveBusinessId();
@@ -67,7 +67,7 @@ export async function requestBookingInfo(formData: FormData) {
 }
 
 export async function saveBookingDraft(formData: FormData) {
-  await requireDashboardAccess();
+  await requireDashboardWriteAccess();
   const bookingRequestId = readString(formData, "bookingRequestId");
   const businessId = await resolveBusinessId();
   const draftText = readString(formData, "draftText").trim();
@@ -77,7 +77,7 @@ export async function saveBookingDraft(formData: FormData) {
 }
 
 export async function sendConfirmation(formData: FormData) {
-  await requireDashboardAccess();
+  await requireDashboardWriteAccess();
   const bookingRequestId = readString(formData, "bookingRequestId");
   const draftText = readString(formData, "draftText");
   const businessId = await resolveBusinessId();
@@ -95,7 +95,7 @@ export async function sendConfirmation(formData: FormData) {
 }
 
 export async function saveAvailabilityWindow(formData: FormData) {
-  await requireDashboardAccess();
+  await requireDashboardWriteAccess();
   const businessId = readString(formData, "businessId");
   const activeBusinessId = await resolveBusinessId();
   const weekday = Number(readString(formData, "weekday"));
@@ -139,7 +139,7 @@ export async function saveAvailabilityWindow(formData: FormData) {
 }
 
 export async function removeAvailabilityWindow(formData: FormData) {
-  await requireDashboardAccess();
+  await requireDashboardWriteAccess();
   const availabilityWindowId = readString(formData, "availabilityWindowId");
   const businessId = await resolveBusinessId();
   if (!availabilityWindowId || !businessId) {
@@ -157,7 +157,7 @@ export async function removeAvailabilityWindow(formData: FormData) {
 }
 
 export async function resolveEscalationAction(formData: FormData) {
-  await requireDashboardAccess();
+  await requireDashboardWriteAccess();
   const escalationId = readString(formData, "escalationId");
   const businessId = await resolveBusinessId();
   if (!escalationId || !businessId) {
@@ -169,7 +169,7 @@ export async function resolveEscalationAction(formData: FormData) {
 }
 
 export async function sendRecoveryOfferAction(formData: FormData) {
-  await requireDashboardAccess();
+  await requireDashboardWriteAccess();
   const recoveryOfferId = readString(formData, "recoveryOfferId");
   const businessId = await resolveBusinessId();
   if (!recoveryOfferId || !businessId) {
@@ -181,7 +181,7 @@ export async function sendRecoveryOfferAction(formData: FormData) {
 }
 
 export async function bootstrapBusinessAction(formData: FormData) {
-  await requireDashboardAccess();
+  await requireDashboardWriteAccess();
   await bootstrapBusiness(readString(formData, "businessName"));
   revalidatePath("/");
 }

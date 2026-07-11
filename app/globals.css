@@ -80,6 +80,27 @@ a {
   gap: 8px;
 }
 
+.demo-login-form {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 22px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.demo-login-form p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.demo-button {
+  border-color: #b9d9c5;
+  background: #edf8f1;
+  color: var(--green-dark);
+}
+
 .login-form label {
   color: var(--muted);
   font-size: 13px;
@@ -256,6 +277,17 @@ h1 {
   color: var(--amber);
 }
 
+.demo-access-badge {
+  padding: 6px 9px;
+  border: 1px solid #b9d9c5;
+  border-radius: 999px;
+  background: #edf8f1;
+  color: var(--green-dark);
+  font-size: 12px;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
 .notice {
   margin-bottom: 16px;
   padding: 12px 14px;
@@ -288,6 +320,26 @@ h1 {
   margin: 0;
   color: #52705d;
   font-size: 13px;
+}
+
+.demo-readonly-note {
+  padding: 12px;
+  border: 1px solid #b9d9c5;
+  border-radius: 8px;
+  background: #edf8f1;
+}
+
+.demo-readonly-note strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--green-dark);
+}
+
+.demo-readonly-note p {
+  margin: 0;
+  color: #52705d;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .metrics {
