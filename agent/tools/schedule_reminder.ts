@@ -1,6 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { scheduleBookingReminder } from "../../lib/reminders.js";
+import { toJsonSafe } from "../lib/json-safe.js";
 
 export default defineTool({
   description: "Schedule a WhatsApp reminder after a booking is confirmed.",
@@ -12,8 +13,8 @@ export default defineTool({
   execute: async (input) => {
     const reminder = await scheduleBookingReminder(input);
 
-    return {
+    return toJsonSafe({
       reminder,
-    };
+    });
   },
 });

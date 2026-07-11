@@ -1,6 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { joinWaitlist } from "../../lib/recovery.js";
+import { toJsonSafe } from "../lib/json-safe.js";
 import { requireSlotWaalaSessionIds } from "../lib/session-context.js";
 
 export default defineTool({
@@ -19,6 +20,6 @@ export default defineTool({
       preferredWindow: input.preferredWindow,
     });
 
-    return { waitlistEntry: entry };
+    return toJsonSafe({ waitlistEntry: entry });
   },
 });

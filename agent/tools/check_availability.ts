@@ -2,6 +2,7 @@ import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { findAvailableSlots } from "../../lib/availability.js";
 import { requireSlotWaalaSessionIds } from "../lib/session-context.js";
+import { toJsonSafe } from "../lib/json-safe.js";
 
 export default defineTool({
   description: "Check available owner-configured slots for a requested service.",
@@ -18,11 +19,11 @@ export default defineTool({
       limit: 4,
     });
 
-    return {
+    return toJsonSafe({
       service,
       preferredWindow: preferredWindow ?? "not specified",
       availableSlots,
       source: "configured_availability",
-    };
+    });
   },
 });

@@ -5,6 +5,16 @@ import { generateMeshJson } from "../lib/mesh.js";
 import { requireSlotWaalaSessionIds } from "../lib/session-context.js";
 import { storeMeshTrace } from "../lib/trace-store.js";
 
+const RawDraftSchema = z.object({
+  reply: z.string().optional(),
+  message: z.string().optional(),
+  tone: z.string().optional(),
+  requiresOwnerApproval: z.boolean().optional(),
+  requires_owner_approval: z.boolean().optional(),
+  reason: z.string().optional(),
+  proposedAction: z.string().optional(),
+});
+
 const DraftSchema = z.object({
   reply: z.string(),
   tone: z.string(),
@@ -36,8 +46,16 @@ export default defineTool({
       messageId: sessionIds.messageId,
     });
 
+    const raw = RawDraftSchema.parse(result.object);
+    const draft = DraftSchema.parse({
+      reply: raw.reply?.trim() || raw.message?.trim() || "Thanks. We have received your request and will review the slot.",
+      tone: raw.tone?.trim() || "friendly",
+      requiresOwnerApproval: raw.requiresOwnerApproval ?? raw.requires_owner_approval ?? true,
+      reason: raw.reason?.trim() || raw.proposedAction?.trim() || "Owner approval is required before confirmation.",
+    });
+
     return {
-      draft: DraftSchema.parse(result.object),
+      draft,
       meshTrace: result.trace,
       storedMeshTrace: storedTrace,
     };

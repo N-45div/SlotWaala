@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createEscalation } from "../../lib/escalations.js";
 import { redactSensitiveData } from "../../lib/sensitive-data.js";
 import { requireSlotWaalaSessionIds } from "../lib/session-context.js";
+import { toJsonSafe } from "../lib/json-safe.js";
 
 export default defineTool({
   description: "Escalate unclear, sensitive, or risky messages to the business owner.",
@@ -24,8 +25,8 @@ export default defineTool({
       recommendedOwnerAction: input.recommendedOwnerAction,
     });
 
-    return {
+    return toJsonSafe({
       escalation,
-    };
+    });
   },
 });

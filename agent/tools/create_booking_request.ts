@@ -3,6 +3,7 @@ import { z } from "zod";
 import { holdSlotForBooking } from "../../lib/availability.js";
 import { createBookingRequest } from "../lib/booking-store.js";
 import { requireSlotWaalaSessionIds } from "../lib/session-context.js";
+import { toJsonSafe } from "../lib/json-safe.js";
 
 export default defineTool({
   description: "Create an owner-visible booking request from operational details.",
@@ -46,6 +47,6 @@ export default defineTool({
         })
       : null;
 
-    return { booking, slotHold };
+    return toJsonSafe({ booking, slotHold });
   },
 });
