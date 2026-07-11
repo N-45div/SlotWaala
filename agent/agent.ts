@@ -1,19 +1,24 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { defineAgent } from "eve";
 
+function env(name: string): string | undefined {
+  const value = process.env[name]?.trim();
+  return value ? value : undefined;
+}
+
 const mesh = createOpenAI({
   name: "mesh",
-  baseURL: (process.env.MESH_BASE_URL ?? "https://api.meshapi.ai/v1").replace(
+  baseURL: (env("MESH_BASE_URL") ?? "https://api.meshapi.ai/v1").replace(
     /\/$/,
     "",
   ),
-  apiKey: process.env.MESH_API_KEY,
+  apiKey: env("MESH_API_KEY"),
 });
 
 export default defineAgent({
   model: mesh.chat(
-    process.env.MESH_AGENT_MODEL ??
-      process.env.MESH_DEFAULT_MODEL ??
+    env("MESH_AGENT_MODEL") ??
+      env("MESH_DEFAULT_MODEL") ??
       "anthropic/claude-haiku-4.5",
   ),
   description:
