@@ -1,67 +1,116 @@
 # SlotWaala
 
-SlotWaala is a WhatsApp front desk for Indian service businesses. It turns an incoming customer message into an owner-reviewed booking request, then sends the approved confirmation and reminder through WhatsApp.
+## WhatsApp bookings, with a human in the loop
 
-It is deliberately not a payment agent. SlotWaala does not read payment screenshots, UPI IDs, card numbers, bank details, Aadhaar, or PAN data.
+SlotWaala is the front desk for service businesses that already run on WhatsApp.
 
-## The Product Loop
+A customer sends a natural message such as:
 
-1. A customer messages the business on WhatsApp.
-2. Twilio sends the signed webhook to Eve at `/eve/v1/twilio/messages`.
-3. A deterministic gate blocks payment and identity data before it reaches Mesh. The owner sees only a redacted escalation.
-4. Eve stores safe inbound context in Neon and runs the SlotWaala agent.
-5. Every AI decision routes through Mesh API: classify intent, extract booking details, draft a reply, and check policy.
-6. The agent checks owner-configured service hours in Neon and creates a short slot hold only for a real open slot.
-7. The owner reviews the selected conversation, its Mesh traces, and the proposed reply in the dashboard.
-8. Only an owner-approved booking sends a customer confirmation. A confirmed booking can schedule a WhatsApp reminder.
-9. A cancellation releases the held slot and creates owner-approved WhatsApp offers for compatible waitlist entries.
+> “AC service chahiye tomorrow 4 PM, Koramangala. Please book.”
 
-## What The Owner Dashboard Shows
+SlotWaala turns that message into a structured booking request, checks the owner’s real service hours, holds an available slot, drafts a reply, and puts the decision in front of the owner.
 
-- A live Neon-backed booking queue with approval and missing-detail counts.
-- A selected conversation review surface instead of global, unconnected draft controls.
-- Per-booking Mesh traces with task, routed model, latency, and output summary.
-- Reminder workload calculated from the `reminders` table, not a static number.
-- Owner-managed service hours, conflict-checked slot holds, and a cancellation recovery queue.
-- Explicit operational guardrails for intake, approval, and pre-Mesh payment-data blocking.
+The customer only receives a confirmation after the owner approves it.
 
-## Guardrails
+That is the product: **less back-and-forth for the owner, no invented availability, and no sensitive payment data sent to an AI model.**
 
-- Customer-facing confirmations require owner approval.
-- Ambiguous, risky, or sensitive requests can be escalated to the owner.
-- Payment and identity data are detected and redacted before the message reaches Mesh or the normal booking store.
-- Every model call visibly uses Mesh API. There is no direct provider key in the application.
-- Twilio inbound webhook validation is handled by Eve's built-in `twilioChannel`.
+## The five-minute front desk
 
-## Architecture
+### 1. Customer messages WhatsApp
 
-| Responsibility | Implementation |
+The inbound channel is Twilio WhatsApp. Eve receives the webhook, validates the channel, identifies the business and customer, and stores the conversation in Neon.
+
+### 2. SlotWaala understands the request
+
+The Eve agent routes every AI call through Mesh API:
+
+- classify the message and language
+- check policy and risk
+- extract service, area, timing, and missing details
+- check the owner’s configured availability
+- draft a short WhatsApp reply
+
+The model never gets payment or identity secrets. A deterministic pre-model gate blocks payment, UPI, bank, card, Aadhaar, and PAN content first.
+
+### 3. The owner sees a real decision
+
+The dashboard is a small control room, not a generic chatbot screen:
+
+- booking queue with missing-detail and approval states
+- selected customer conversation
+- editable agent draft
+- Mesh trace showing task, model, latency, and summary
+- configured service hours
+- owner escalations with redacted context
+- released-slot recovery offers
+- reminder workload
+
+### 4. The owner approves
+
+The owner can edit the draft, ask for one more detail, reject the request, or approve it.
+
+Approval is the boundary. SlotWaala then:
+
+- confirms the real slot hold
+- sends the approved WhatsApp message through Twilio
+- records the outbound message
+- schedules the reminder
+
+### 5. A cancellation does not waste the slot
+
+When a confirmed booking is cancelled, SlotWaala releases the hold and ranks compatible waitlist customers. Daypart preferences such as morning, afternoon, or evening are used when matching the released slot. The owner still approves the recovery offer before it is sent.
+
+## Why this is not a payment agent
+
+SlotWaala intentionally stops at operational scheduling.
+
+It does not read payment screenshots, UPI IDs, card numbers, bank details, Aadhaar, or PAN data. If sensitive content is detected, the message is redacted and routed to an owner escalation. The raw sensitive text is not sent through Mesh or stored in the normal booking workflow.
+
+## Product architecture
+
+```mermaid
+flowchart LR
+  Customer[Customer on WhatsApp] --> Twilio[Twilio WhatsApp]
+  Twilio --> Eve[Eve Twilio channel]
+  Eve --> Gate[Pre-Mesh safety gate]
+  Gate --> Neon[(Neon Postgres)]
+  Gate --> Mesh[Mesh API]
+  Mesh --> Eve
+  Eve --> Neon
+  Owner[Business owner] --> Dashboard[SlotWaala control room]
+  Dashboard --> Neon
+  Dashboard --> Twilio
+  Twilio --> Customer
+```
+
+| Surface | Technology | Role |
+| --- | --- | --- |
+| Customer channel | Twilio WhatsApp | Inbound messages and approved outbound replies |
+| Agent runtime | Eve.dev | Webhook channel, session context, agent tools |
+| AI gateway | Mesh API | Every model call and visible model routing |
+| Owner surface | Next.js | Queue, conversation review, approval, recovery |
+| Persistent state | Neon Postgres | Customers, messages, slots, traces, reminders |
+| Deployment | Vercel | Next.js web service and Eve service |
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for service topology, sequence diagrams, data model, and trust boundaries.
+
+## Mesh routing
+
+The default routing is cost-aware and visible in the dashboard trace:
+
+| Job | Default model through Mesh |
 | --- | --- |
-| Customer channel | Twilio WhatsApp |
-| Agent runtime | Eve.dev |
-| AI gateway | Mesh API, via its OpenAI-compatible endpoint |
-| Owner surface | Next.js dashboard |
-| Persistent state | Neon Postgres |
-| Deployment | Vercel Services: `web` for Next.js and `eve` for the agent endpoint |
-
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for the service topology, inbound sequence, and data model diagrams.
-
-## Mesh Routing
-
-The Eve agent's primary model and its structured decision tools all use Mesh API. Default task routing is intentionally cost-aware:
-
-| Task | Default Mesh model |
-| --- | --- |
+| Agent primary model | `amazon/nova-lite-v1` |
 | `classify_inbound` | `amazon/nova-micro-v1` |
 | `extract_booking_details` | `amazon/nova-lite-v1` |
 | `draft_customer_reply` | `amazon/nova-lite-v1` |
 | `check_message_policy` | `anthropic/claude-haiku-4.5` |
 
-Override the routing with `MESH_AGENT_MODEL`, `MESH_FAST_MODEL`, `MESH_REASONING_MODEL`, `MESH_CLASSIFIER_MODEL`, `MESH_EXTRACTION_MODEL`, `MESH_DRAFT_MODEL`, and `MESH_POLICY_MODEL`.
+All model IDs are sent to Mesh through its OpenAI-compatible endpoint. There is no direct provider key in SlotWaala.
 
-## Run Locally
+## Run the product locally
 
-SlotWaala requires Node 24.
+Requirements: Node 24, a Neon Postgres database, a Mesh key, and Twilio credentials.
 
 ```bash
 nvm use 24
@@ -69,48 +118,36 @@ npm install
 cp .env.example .env.local
 ```
 
-Set the required values in `.env.local`, apply [neon/schema.sql](./neon/schema.sql) to the target Neon database, then run:
+Apply [neon/schema.sql](./neon/schema.sql) to Neon, fill the environment values, then run the owner surface:
 
 ```bash
 npm run dev
 ```
 
-For agent-specific local work:
+Run the Eve agent locally in a second terminal:
 
 ```bash
 npm run agent:dev
 ```
 
-## Required Environment
+Open `http://localhost:3000`, enter the owner access token, create the booking desk, and add at least one service-hours window before testing a booking.
 
-Copy `.env.example`; do not commit `.env.local`.
+## Production setup
 
-| Variable group | Purpose |
-| --- | --- |
-| `DATABASE_URL` | Neon Postgres connection string |
-| `MESH_API_KEY`, `MESH_BASE_URL` | Mesh API authentication and endpoint |
-| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MESSAGING_FROM` | WhatsApp inbound and outbound delivery |
-| `TWILIO_WHATSAPP_WEBHOOK_URL` | Public Eve webhook, for example `https://your-domain.vercel.app/eve/v1/twilio/messages` |
-| `NEXT_PUBLIC_APP_URL` | Public web origin used by Eve/Twilio configuration |
-| `DASHBOARD_ACCESS_TOKEN` | Sensitive owner token required to open the dashboard |
-| `CRON_SECRET` | Authorization for the reminder cron route |
+1. Deploy the repo to Vercel.
+2. Add the values from `.env.example` to the production environment.
+3. Set `NEXT_PUBLIC_APP_URL` to the public Vercel origin.
+4. Set `TWILIO_WHATSAPP_WEBHOOK_URL` to:
+   `https://your-domain.vercel.app/eve/v1/twilio/messages`
+5. Configure the same URL in the Twilio WhatsApp sender or Sandbox.
+6. Create the business and service hours in the dashboard.
+7. Send a real WhatsApp booking request and verify it appears in the queue.
 
-`SLOTWAALA_E2E_CUSTOMER_WHATSAPP` and `SLOTWAALA_E2E_WEBHOOK_URL` are required for the real end-to-end evaluation. The check posts a Twilio-shaped inbound message to the configured Eve webhook and waits for the resulting booking request and Mesh traces.
+The production dashboard is protected by `DASHBOARD_ACCESS_TOKEN`. Keep that token private.
 
-## Deploy And Connect Twilio
+## Real verification
 
-1. Deploy the repository to Vercel. `vercel.json` routes `/eve/v1/*` to Eve and all other paths to Next.js.
-2. Configure the production values from `.env.example` in Vercel.
-3. Set `NEXT_PUBLIC_APP_URL` and `TWILIO_WHATSAPP_WEBHOOK_URL` to the deployed origin.
-4. In Twilio's WhatsApp sender or sandbox configuration, use:
-
-   ```text
-   https://your-domain.vercel.app/eve/v1/twilio/messages
-   ```
-
-5. Send a real WhatsApp booking request. It should persist in Neon and appear in the owner queue for review.
-
-## Verification
+Static checks:
 
 ```bash
 npm run typecheck
@@ -118,14 +155,32 @@ npm run build
 npm run eval:preflight
 ```
 
-`npm run eval:e2e:real` is intentionally real, not mocked. It needs Neon, the deployed Eve webhook, the Twilio business number, and `SLOTWAALA_E2E_CUSTOMER_WHATSAPP`. It verifies inbound persistence, agent processing, booking creation, and Mesh traces; owner approval remains a deliberate dashboard action.
+The real webhook evaluation requires:
 
-## Repository Map
+- `DATABASE_URL`
+- `TWILIO_MESSAGING_FROM`
+- `SLOTWAALA_E2E_WEBHOOK_URL`
+- `SLOTWAALA_E2E_CUSTOMER_WHATSAPP`
 
-| Path | Purpose |
+Run it with:
+
+```bash
+npm run eval:e2e:real
+```
+
+The evaluation posts a Twilio-shaped inbound message to the configured Eve webhook and waits for the real booking request and Mesh traces. It does not bypass the agent by inserting a fake booking. Owner approval remains an explicit dashboard action.
+
+## Repository map
+
+| Path | What lives there |
 | --- | --- |
-| `agent/` | Eve agent, built-in Twilio channel, and Mesh-backed tools |
-| `app/` | Next.js owner dashboard, server actions, and reminder cron route |
-| `lib/` | Neon persistence, owner actions, Twilio outbound delivery, and reminders |
-| `neon/schema.sql` | Persistent booking, message, trace, action, and reminder schema |
-| `scripts/` | Live preflight and end-to-end evaluation scripts |
+| `agent/` | Eve agent, Twilio channel, session context, and Mesh-backed tools |
+| `app/` | Next.js owner dashboard, server actions, login, and reminder route |
+| `lib/` | Neon persistence, availability, recovery, reminders, and Twilio delivery |
+| `neon/schema.sql` | Booking, message, slot, trace, owner-action, and reminder tables |
+| `scripts/` | Preflight and real webhook evaluation |
+| `ARCHITECTURE.md` | Mermaid diagrams and trust boundaries |
+
+## Demo
+
+The private demo runbook is kept outside the public repository in `.internal/DEMO_RUNBOOK.md`.
